@@ -79,9 +79,9 @@ descriptions, changed-file lists, check results, and Copilot findings for planni
 situational awareness.
 
 It also performs the PR lifecycle actions that Copilot cannot perform for itself: moving
-Copilot draft PRs to ready for review, approving pending GitHub Actions workflow runs,
-approving a PR once Copilot code review reports no outstanding findings, and merging
-eligible PRs. Sections 7.4 and 7.5 define the policies for these actions.
+Copilot draft PRs to ready for review, requesting Copilot code review, approving a PR once
+Copilot code review reports no outstanding findings, and merging eligible PRs. Sections 7.4
+and 7.5 define the policies for these actions.
 
 It must not author application code, form its own code-review verdicts, dismiss or override
 Copilot findings, or invent test results. Its approval reflects Copilot's review outcome and
@@ -158,7 +158,7 @@ Opening a project exposes:
 
 Delivery starts when the customer tells the lead agent to proceed in chat. The service records
 that delivery has started, so it resumes after a restart. Starting delivery authorizes the
-agent to assign tasks, move Copilot drafts to ready for review, approve workflow runs, approve
+agent to assign tasks, move Copilot drafts to ready for review, request reviews, approve
 PRs, and merge them into `main` without per-PR customer confirmation. Stopping the application
 is the MVP's way to halt new dispatch and merges.
 
@@ -249,7 +249,7 @@ toward the task's remediation limit.
 1. Detect the PR for the assigned task and its latest head SHA.
 2. Wait until the Copilot coding session has finished.
 3. Move the PR from draft to ready for review. Copilot cannot mark its own PRs ready.
-4. Approve pending GitHub Actions workflow runs for the current head.
+4. Start any GitHub Actions workflow runs that GitHub held for approval on the current head.
 5. Request Copilot code review for the current head, or observe a ruleset-triggered review.
 6. Collect review findings and required-check results for the current head.
 7. If findings or failures exist, post a PR comment that mentions `@copilot` and restates
@@ -264,11 +264,15 @@ coding session, so remediation always uses a PR-level `@copilot` comment. Copilo
 comments from users with write access, which the owner's PAT provides. Request re-review after
 each remediation session finishes rather than on every push, because each review is billed.
 
-Workflows on Copilot PRs do not run until a user with write access approves them. The lead
-agent approves pending runs on Copilot PRs for dispatched tasks. Approved runs can expose
-repository secrets to unreviewed code; an owner-confirmation guard is deferred to section 16.
-Alternatively, the owner can disable **Require approval for workflow runs** in the repository's
-Copilot cloud agent settings.
+By default, GitHub holds workflow runs on Copilot PRs until a user with write access approves
+them, and a held run produces no check runs. M0 showed that the REST approval endpoint refuses
+these runs ("not from a fork pull request"), and that GitHub later marks them failed with zero
+jobs. Re-running such a run from the owner's token starts it normally. Software Factory therefore
+treats held and never-started runs as blocking, cancels or re-runs them up to three attempts,
+and only then reports a failure. Turning off **Require approval for workflow runs** in the
+repository's Copilot cloud agent settings avoids the delay. Either way, unreviewed Copilot code
+runs in CI with access to repository secrets; an owner-confirmation guard for workflow-file
+changes is deferred to section 16.
 
 Proposed default: at most three remediation cycles per task. Persistent failures, missing
 credentials, and exhausted Copilot quota are surfaced explicitly.
@@ -277,8 +281,8 @@ credentials, and exhausted Copilot quota are surfaced explicitly.
 
 The service merges a PR into `main` only when every gate passes:
 
-* Required checks have succeeded for the current head
-* Copilot review has completed for the current head with no unresolved findings
+* Required checks have succeeded for the current head, and no workflow run is held for approval
+* The latest Copilot review of the current head added no findings
 * An approval for the current head exists through one of the approval paths below
 * All GitHub repository rules are satisfied
 * The PR targets `main`, is not a draft, and is mergeable
@@ -298,17 +302,17 @@ A PR is approved through one of these paths, in order of preference:
 The service does not need to know in advance whether Copilot approvals are available. It uses
 path 1 when an approving Copilot review exists for the current head and otherwise applies
 path 2. Lead-agent approval is a service-enforced gate, not model discretion: the service
-verifies that the review's commit SHA matches the head, that no unresolved Copilot review
-threads remain, and that required checks passed. An "LGTM" summary never overrides open
-inline findings.
+verifies that the review's commit SHA matches the head, that the review added no inline
+comments, and that required checks passed. Copilot re-reviews the whole PR after each
+remediation, so findings from earlier reviews that it does not repeat are treated as addressed.
+An "LGTM" summary never overrides inline findings.
 
-GitHub prevents the user who asked Copilot to create a PR from approving it, and the lead
-agent acts through that user's PAT. Lead-agent approval is therefore recorded locally and in a
-PR comment that links the Copilot review and check runs. It is submitted as an approving
-review only if GitHub accepts one. Software Factory does not add a second identity to work
-around this restriction, and it never weakens protections or fabricates approval. If a
-repository rule requires an approval that neither path can satisfy, the task is blocked
-with the owner action required.
+GitHub attributes Copilot's PRs to the user who assigned the issue, and that user cannot approve
+their own PR. M0 confirmed that GitHub refuses the approving review, so lead-agent approval is
+recorded locally and in a PR comment that links the Copilot review and check runs. Software
+Factory does not add a second identity to work around this restriction, and it never weakens
+protections or fabricates approval. If a repository rule requires an approval that neither path
+can satisfy, the task is blocked with the owner action required.
 
 A task is delivered only when its PR has merged into `main`. The agent reports what is
 merged, in review, or blocked, and never equates an open PR or a finished Copilot session
@@ -382,7 +386,6 @@ Provide typed tools for:
 * Requesting Copilot review
 * Posting `@copilot` remediation comments
 * Marking PRs ready for review
-* Approving workflow runs
 * Approving and merging PRs
 
 Bind the project, repository, board, and document directory in server-side execution context.
@@ -478,9 +481,19 @@ settings can let Copilot approvals count toward merge requirements.
 
 Moving a draft PR to ready for review uses the GraphQL `markPullRequestReadyForReview`
 mutation. `GET /repos/{owner}/{repo}/copilot/cloud-agent/configuration` reports whether
-workflow runs require approval. M0 verifies how the owner's PAT approves pending workflow runs
-on Copilot PRs, including whether `POST /repos/{owner}/{repo}/actions/runs/{run_id}/approve`
-applies.
+workflow runs require approval; no API changes that setting, and
+`POST /repos/{owner}/{repo}/actions/runs/{run_id}/approve` refuses Copilot PR runs, but
+`POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun` starts a held run that GitHub has
+marked failed.
+
+Copilot's PRs are attributed to the assigning user and use a `copilot/` head branch. The service
+links a task to its PR through the issue's closing references and timeline, and uses the agent
+tasks API (`GET /agents/repos/{owner}/{repo}/tasks`) to tell whether a Copilot session is still
+working on the PR.
+
+When the token cannot manage Projects boards, for example a fine-grained PAT on a personal
+account, setup falls back to tracking task status with `sf:` issue labels and shows a warning.
+Replacing the token with a classic PAT and re-running setup creates the board.
 
 ## 12. Safety basics
 
@@ -508,8 +521,8 @@ applies.
    task issues on the board. No credentials or raw chat reach GitHub.
 6. After the customer says to proceed, ready tasks are assigned to Copilot in parallel up to the
    limit, dependencies are respected, and a restart does not assign a task twice.
-7. The lead agent moves Copilot drafts to ready for review, approves pending workflow runs, and
-   requests Copilot review without owner action.
+7. The lead agent moves Copilot drafts to ready for review, starts held workflow runs, and
+   requests Copilot review without owner action. A held run never counts as passing.
 8. Copilot findings and failed checks reach Copilot through `@copilot` PR comments. After three
    remediation cycles, the task is blocked with a visible explanation.
 9. A PR with a clean Copilot review and passing checks for its current head is approved and
@@ -560,7 +573,8 @@ Confirmed decisions:
 * Use Copilot approvals when present; otherwise the lead agent approves when Copilot's review
   of the current head leaves no unresolved findings.
 * Route Copilot findings to Copilot coding agent through `@copilot` PR comments.
-* The lead agent moves Copilot drafts to ready for review and approves CI workflow runs.
+* The lead agent moves Copilot drafts to ready for review and starts held CI runs by re-running
+  them, because GitHub's approval endpoint does not cover Copilot PR runs.
 * Run multiple tasks per project in parallel.
 * Support Windows only.
 
@@ -575,12 +589,10 @@ Proposed defaults:
 Open questions:
 
 1. Can Copilot approvals be enabled for the personal repository? The workflow does not depend
-   on the answer, but M0 should record it.
-2. Does GitHub accept an approving review from the PAT owner on Copilot PRs that owner
-   requested, or is lead-agent approval recorded only locally and in a PR comment?
-3. How should the agent support data science work that needs datasets, experiments, or compute
+   on the answer.
+2. How should the agent support data science work that needs datasets, experiments, or compute
    beyond a GitHub coding environment?
-4. What Windows packaging and installation experience should the first distribution provide?
+3. What Windows packaging and installation experience should the first distribution provide?
 
 ## 16. Later
 
@@ -641,10 +653,10 @@ dispatched work, open PRs, and delivered capabilities. Active work is explicitly
 cancelled, or superseded, and superseded issues link to the change and replacement work.
 Define which business changes require renewed approval.
 
-### 16.9 Owner confirmation for workflow-file CI approvals
+### 16.9 Owner confirmation for workflow-file changes
 
-Require owner confirmation before approving workflow runs on PRs that modify
-`.github/workflows/**` or other owner-designated sensitive paths.
+Hold PRs that modify `.github/workflows/**` or other owner-designated sensitive paths for owner
+confirmation before merging, since CI on Copilot PRs runs without per-run approval.
 
 ### 16.10 Activity and audit history
 

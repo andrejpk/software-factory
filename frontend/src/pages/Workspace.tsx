@@ -1,0 +1,265 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api, type Message, type ProjectDetail, type Task } from "../api";
+import Markdown from "../Markdown";
+import { deliveryLabel } from "./ProjectList";
+
+const TABS = ["chat", "brd", "backlog", "settings"] as const;
+type Tab = (typeof TABS)[number];
+const TAB_LABEL: Record<Tab, string> = { chat: "Chat", brd: "BRD", backlog: "Backlog", settings: "Settings" };
+
+function currentTab(): Tab {
+  const t = window.location.hash.split("/")[3] as Tab;
+  return TABS.includes(t) ? t : "chat";
+}
+
+export default function Workspace({ id }: { id: string }) {
+  const [project, setProject] = useState<ProjectDetail | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [thinking, setThinking] = useState(false);
+  const [docVersion, setDocVersion] = useState(0);
+  const [tab, setTab] = useState<Tab>(currentTab());
+  const [error, setError] = useState("");
+
+  const loadProject = useCallback(() => api.project(id).then(setProject).catch((e) => setError(e.message)), [id]);
+  const loadMessages = useCallback(() => api.messages(id).then(setMessages), [id]);
+
+  useEffect(() => {
+    const onHash = () => setTab(currentTab());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  useEffect(() => {
+    loadProject();
+    loadMessages();
+    const es = new EventSource(`/api/projects/${id}/stream`);
+    es.onmessage = (e) => {
+      const ev = JSON.parse(e.data);
+      if (ev.type === "message") loadMessages();
+      else if (ev.type === "agent") setThinking(ev.status === "thinking");
+      else if (ev.type === "document") setDocVersion((v) => v + 1);
+      loadProject();
+    };
+    return () => es.close();
+  }, [id, loadProject, loadMessages]);
+
+  if (error) return <div className="banner blocked">{error}</div>;
+  if (!project) return <p className="muted">Loading...</p>;
+
+  return (
+    <section>
+      <div className="row between">
+        <div>
+          <h1>{project.name}</h1>
+          <p className="muted">{project.description}</p>
+        </div>
+        <div className="stack-right">
+          <span className="pill">{deliveryLabel(project)}</span>
+          <span className="muted small">
+            {project.last_sync_at ? `Last GitHub sync ${new Date(project.last_sync_at).toLocaleTimeString()}` : "Not synced yet"}
+          </span>
+        </div>
+      </div>
+      {project.setup_status !== "ready" && (
+        <div className={`banner ${project.setup_status === "blocked" ? "blocked" : "warn"}`}>
+          {project.setup_status === "blocked" ? "Setup is blocked. " : "Setup has not run yet. "}
+          <a href={`#/p/${id}/settings`}>Open settings</a> to run the connection checklist.
+        </div>
+      )}
+      <nav className="tabs">
+        {TABS.map((t) => (
+          <a key={t} href={`#/p/${id}/${t}`} className={tab === t ? "active" : ""}>{TAB_LABEL[t]}</a>
+        ))}
+      </nav>
+      {tab === "chat" && <Chat id={id} messages={messages} thinking={thinking} onSent={loadMessages} />}
+      {tab === "brd" && <Brd id={id} version={docVersion} />}
+      {tab === "backlog" && <Backlog project={project} />}
+      {tab === "settings" && <Settings project={project} onChange={loadProject} />}
+    </section>
+  );
+}
+
+function Chat({ id, messages, thinking, onSent }: { id: string; messages: Message[]; thinking: boolean; onSent: () => void }) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, thinking]);
+
+  async function send() {
+    if (!text.trim()) return;
+    setBusy(true);
+    try {
+      await api.sendMessage(id, text.trim());
+      setText("");
+      onSent();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="chat">
+      <div className="messages">
+        {messages.length === 0 && (
+          <p className="muted">Start by asking the lead engineer to review your BRD and propose a plan.</p>
+        )}
+        {messages.map((m) => (
+          <div key={m.id} className={`msg ${m.role}`}>
+            <div className="who">{m.role === "user" ? "You" : "Lead engineer"}</div>
+            <Markdown text={m.content} />
+          </div>
+        ))}
+        {thinking && <div className="msg assistant thinking">Lead engineer is working...</div>}
+        <div ref={endRef} />
+      </div>
+      <div className="composer">
+        <textarea rows={3} value={text} placeholder="Message the lead engineer"
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+        <button className="primary" onClick={send} disabled={busy || !text.trim()}>Send</button>
+      </div>
+    </div>
+  );
+}
+
+function Brd({ id, version }: { id: string; version: number }) {
+  const [content, setContent] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    if (!editing) api.document(id, "BRD.md").then((d) => setContent(d.content)).catch(() => setContent(""));
+  }, [id, version, editing]);
+
+  async function save() {
+    await api.saveDocument(id, "BRD.md", draft);
+    setEditing(false);
+  }
+
+  if (content === null) return <p className="muted">Loading...</p>;
+  return (
+    <div className="panel">
+      <div className="row between">
+        <h2>Business requirements</h2>
+        {editing ? (
+          <div className="row">
+            <button className="primary" onClick={save}>Save</button>
+            <button onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+        ) : (
+          <button onClick={() => { setDraft(content); setEditing(true); }}>Edit</button>
+        )}
+      </div>
+      {editing ? <textarea className="editor" value={draft} onChange={(e) => setDraft(e.target.value)} />
+        : <Markdown text={content || "_The BRD is empty. Describe your idea in chat._"} />}
+    </div>
+  );
+}
+
+const STATE_LABEL: Record<Task["state"], string> = {
+  todo: "To do", dispatched: "Copilot coding", reviewing: "In review", remediating: "Fixing review findings",
+  merged: "Merged", blocked: "Blocked",
+};
+
+function Backlog({ project }: { project: ProjectDetail }) {
+  const repo = project.repo_url;
+  return (
+    <div className="grid2">
+      <div className="panel">
+        <div className="row between">
+          <h2>Tasks</h2>
+          <button onClick={() => api.refresh(project.id)}>Refresh from GitHub</button>
+        </div>
+        {!project.delivery_started && project.tasks.length > 0 && (
+          <p className="hint">Delivery has not started. Tell the lead engineer to proceed when you are ready.</p>
+        )}
+        {project.tasks.length === 0 ? <p className="muted">No tasks yet. Ask the lead engineer to plan the work.</p> : (
+          <table>
+            <thead><tr><th>Task</th><th>Status</th><th>GitHub</th><th>Detail</th></tr></thead>
+            <tbody>
+              {project.tasks.map((t) => (
+                <tr key={t.key}>
+                  <td><strong>{t.key}</strong> {t.title}
+                    {t.depends_on.length > 0 && <div className="muted small">after {t.depends_on.join(", ")}</div>}</td>
+                  <td><span className={`pill state-${t.state}`}>{STATE_LABEL[t.state]}</span>
+                    {t.remediation_count > 0 && <div className="muted small">{t.remediation_count} fix cycle(s)</div>}</td>
+                  <td className="nowrap">
+                    {t.issue_number && <a href={`${repo}/issues/${t.issue_number}`} target="_blank" rel="noreferrer">#{t.issue_number}</a>}
+                    {t.pr_number && <> · <a href={`${repo}/pull/${t.pr_number}`} target="_blank" rel="noreferrer">PR #{t.pr_number}</a></>}
+                  </td>
+                  <td className="small">{t.state === "blocked" ? t.blocked_reason : t.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      <div className="panel">
+        <h2>Activity</h2>
+        <ul className="activity">
+          {[...project.events].reverse().map((e) => (
+            <li key={e.id} className={`kind-${e.kind}`}>
+              <span className="muted small">{new Date(e.created_at).toLocaleTimeString()}</span>{" "}
+              {e.url ? <a href={e.url} target="_blank" rel="noreferrer">{e.message}</a> : e.message}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function Settings({ project, onChange }: { project: ProjectDetail; onChange: () => void }) {
+  const [running, setRunning] = useState(false);
+  const [pat, setPat] = useState("");
+  const [limit, setLimit] = useState(project.parallel_limit);
+  const [msg, setMsg] = useState("");
+
+  async function setup() {
+    setRunning(true);
+    try { await api.runSetup(project.id); onChange(); } finally { setRunning(false); }
+  }
+
+  return (
+    <div className="grid2">
+      <div className="panel">
+        <h2>Connection checklist</h2>
+        {project.checklist.length === 0 && <p className="muted">Setup has not run yet. Running setup creates the
+          main branch, a ruleset, labels, and the Projects board in your repository.</p>}
+        <ul className="checklist">
+          {project.checklist.map((c) => (
+            <li key={c.key}><span className={`dot ${c.status}`} /> <strong>{c.label}</strong>
+              {c.detail && <div className="small muted">{c.detail.startsWith("https://")
+                ? <a href={c.detail} target="_blank" rel="noreferrer">{c.detail}</a> : c.detail}</div>}</li>
+          ))}
+        </ul>
+        <button className="primary" onClick={setup} disabled={running}>
+          {running ? "Running setup..." : project.checklist.length ? "Re-run setup" : "Run setup"}
+        </button>
+      </div>
+      <div className="panel">
+        <h2>Project</h2>
+        <dl>
+          <dt>Repository</dt><dd><a href={project.repo_url} target="_blank" rel="noreferrer">{project.repo_url}</a></dd>
+          <dt>Board</dt><dd>{project.board_url ? <a href={project.board_url} target="_blank" rel="noreferrer">{project.board_url}</a>
+            : project.board_mode === "labels" ? "Using issue labels (token cannot manage Projects)" : "Not created yet"}</dd>
+          <dt>GitHub token</dt><dd>{project.pat_configured ? "Configured" : "Missing"}</dd>
+          <dt>Delivery</dt><dd>{project.delivery_started ? "Started" : "Not started"}</dd>
+        </dl>
+        <label>Parallel task limit
+          <div className="row">
+            <input type="number" min={1} max={10} value={limit} onChange={(e) => setLimit(Number(e.target.value))} />
+            <button onClick={async () => { await api.patchProject(project.id, { parallel_limit: limit }); setMsg("Saved"); onChange(); }}>Save</button>
+          </div>
+        </label>
+        <label>Replace GitHub token
+          <div className="row">
+            <input type="password" autoComplete="off" value={pat} onChange={(e) => setPat(e.target.value)} />
+            <button disabled={pat.length < 10} onClick={async () => { await api.updatePat(project.id, pat); setPat(""); setMsg("Token updated. Re-run setup."); onChange(); }}>Update</button>
+          </div>
+        </label>
+        {msg && <p className="hint">{msg}</p>}
+      </div>
+    </div>
+  );
+}

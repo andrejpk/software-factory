@@ -1,0 +1,32 @@
+[project]
+name = "software-factory"
+version = "0.1.0"
+description = "Local app that turns customer conversations into software through a Foundry lead agent and GitHub Copilot."
+authors = [
+    { name = "Lucas Huet", email = "lucashh@microsoft.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "httpx>=0.27",
+    "azure-identity>=1.23",
+    "azure-ai-projects>=2.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "respx>=0.21",
+]
+
+[project.scripts]
+software-factory = "software_factory.main:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
