@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -45,7 +46,7 @@ class DocumentIn(BaseModel):
 
 
 def create_app(settings: Settings, store: Store, bus: EventBus, orch: Orchestrator, agent: LeadAgent,
-               start_worker: bool = True) -> FastAPI:
+               start_worker: bool = True, is_shutting_down: Callable[[], bool] = lambda: False) -> FastAPI:
     foundry_status: dict = {"ok": False, "detail": "Not checked yet"}
 
     @asynccontextmanager
@@ -179,14 +180,20 @@ def create_app(settings: Settings, store: Store, bus: EventBus, orch: Orchestrat
         q = bus.subscribe(pid)
 
         async def gen():
+            idle = 0.0
             try:
                 yield "event: ready\ndata: {}\n\n"
-                while not await request.is_disconnected():
+                # End promptly on shutdown; otherwise uvicorn waits forever for this open stream.
+                while not is_shutting_down() and not await request.is_disconnected():
                     try:
-                        ev = await asyncio.wait_for(q.get(), timeout=15)
+                        ev = await asyncio.wait_for(q.get(), timeout=1)
+                        idle = 0.0
                         yield f"data: {json.dumps(ev)}\n\n"
                     except TimeoutError:
-                        yield ": keepalive\n\n"
+                        idle += 1
+                        if idle >= 15:
+                            idle = 0.0
+                            yield ": keepalive\n\n"
             finally:
                 bus.unsubscribe(pid, q)
 

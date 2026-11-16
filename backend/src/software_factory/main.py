@@ -44,11 +44,15 @@ def main() -> None:
     logging.getLogger("azure").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    app = create_app(settings, store, bus, orch, agent)
     url = f"http://{settings.host}:{settings.port}"
-    print(f"Software Factory running at {url} (data: {settings.home})")
+    print(f"Software Factory running at {url} (data: {settings.home}). Press Ctrl+C to stop.")
+    server: uvicorn.Server | None = None
+    app = create_app(settings, store, bus, orch, agent,
+                     is_shutting_down=lambda: bool(server and server.should_exit))
+    server = uvicorn.Server(uvicorn.Config(app, host=settings.host, port=settings.port, log_level="warning",
+                                           timeout_graceful_shutdown=3))
     threading.Timer(1.5, lambda: webbrowser.open(url)).start()
-    uvicorn.run(app, host=settings.host, port=settings.port, log_level="warning")
+    server.run()
 
 
 if __name__ == "__main__":

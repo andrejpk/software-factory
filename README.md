@@ -10,7 +10,7 @@ Foundry lead engineer agent refines your business requirements document (BRD), c
 issues in your GitHub repository, assigns them to the GitHub Copilot coding agent, routes Copilot
 code review findings back for fixes, and merges clean pull requests into `main`.
 
-See [NewSpec.md](NewSpec.md) for the full MVP specification.
+See [SPEC.md](SPEC.md) for the full MVP specification.
 
 ## Prerequisites
 
@@ -54,6 +54,9 @@ The script installs dependencies on first run, builds the UI, starts the server 
 2. Open **Settings** and select **Run setup** to create `main`, the ruleset, labels, and the board.
 3. In **Chat**, ask the lead engineer to review the BRD and plan the work.
 4. Tell the lead engineer to proceed. Track progress in **Backlog**.
+
+Press Ctrl+C in the terminal to stop the app. Work already assigned to Copilot continues on
+GitHub, and the app catches up when you start it again.
 
 ## Develop
 
