@@ -1,455 +1,344 @@
 ---
-title: Software Factory Specification
+title: Software Factory MVP Specification
 description: A local application that turns customer conversations into software through a Foundry lead agent and GitHub Copilot.
 ms.date: 2026-11-16
 ---
 
 ## 1. Product vision
 
-Software Factory lets a customer build and evolve a software product without managing its
-source code, engineering backlog, or pull requests.
+At its core, Software Factory is a local project that, when run, opens a UI that helps the
+user configure a new project. A Foundry-based lead engineer agent then coordinates the
+backlog and assigns work to GitHub Copilot to get it done.
 
-The customer describes a business idea and works with a lead engineer agent to clarify it.
-The agent maintains a business requirements document (BRD), devises an architecture and
-delivery plan, manages a GitHub backlog, delegates implementation to GitHub Copilot, and
-keeps the customer informed as the product takes shape.
+The customer describes a business idea and works with the lead engineer agent to shape it
+into a business requirements document (BRD). The agent turns the BRD into GitHub issues on a
+Projects board, assigns them to the GitHub Copilot coding agent, routes Copilot code review
+findings back for fixes, and merges finished work into `main`. The customer follows progress
+in Software Factory rather than in GitHub.
 
-The lead engineer agent runs on Microsoft Foundry. GitHub Copilot is the coding agent and
-code reviewer. Software Factory coordinates their work; it does not introduce a second
-coding agent or make the Foundry agent a code reviewer.
+The lead engineer agent runs on Microsoft Foundry. GitHub Copilot is the coding agent and the
+code reviewer. Software Factory coordinates their work; it does not introduce a second coding
+agent or make the Foundry agent a code reviewer.
 
-Software Factory runs locally with a browser-based UI. Project documents, conversations,
-memory, and orchestration state persist on the user's machine. Assigned development work
-runs on GitHub independently of the local application.
+Status: Draft v0.2, MVP scope. Section 16 lists capabilities deferred beyond the MVP.
 
-Status: Draft v0.1. Product requirements are captured below; proposed defaults and unresolved
-decisions are identified explicitly. This is a seed specification for a new repository,
-not an instruction to convert Bolt Reporter or implement Software Factory in this repository.
+## 2. MVP scope
 
-## 2. Goals
+The MVP delivers one end-to-end loop:
 
-1. Translate business conversations into a versioned BRD and actionable engineering work.
-2. Provide a customer-facing UI for creating projects, discussing goals, and tracking progress.
-3. Maintain project understanding across conversations, application restarts, and code changes.
-4. Create and manage epics, user stories, and implementation tasks in GitHub Issues and Projects.
-5. Assign bounded implementation work to GitHub Copilot and track the resulting pull requests.
-6. Request Copilot code reviews and coordinate follow-up work until changes meet delivery gates.
-7. Keep the customer informed in business terms without requiring them to operate GitHub.
-8. Reconcile work completed while the application was stopped and resume without duplicates.
+1. Run Software Factory locally and open the browser UI.
+2. Configure a project with an empty repository owned by the user's personal GitHub account, a
+   classic PAT, and an initial BRD.
+3. Refine the BRD in chat with the Foundry lead engineer agent.
+4. The lead agent creates implementation tasks as GitHub issues on a personal Projects board.
+5. When the customer tells the agent to proceed, it assigns ready tasks to Copilot in parallel.
+6. Copilot code review examines each PR, and the lead agent routes findings back to Copilot
+   through `@copilot` PR comments.
+7. When the review is clean and checks pass, the lead agent approves the PR and merges it into `main`.
+8. The customer sees progress in the UI.
 
-## 3. Non-goals for the first version
+## 3. Non-goals
 
 * A hosted Software Factory service, shared database, or multi-user collaboration
 * Work IQ, standup transcripts, Microsoft 365 integration, or email reporting
 * Local code synthesis, local customer-repository execution, or a built-in code editor
-* Code review or technical approval performed by the Foundry lead agent
-* Support for source-control providers other than GitHub.com
-* Organization-owned repositories or Projects boards in the first version
-* Multiple repositories per Software Factory project
-* macOS or Linux support in the initial release
-* Runnable previews or preview hosting, which may be added later
-* Unrestricted autonomous production deployment or cloud resource provisioning
-* Automatic bypass of GitHub branch protections, organization policies, or required approvals
-* Guaranteed correctness, production readiness, or completion without any human intervention
+* Independent code review by the Foundry lead agent; its PR approvals rely on Copilot review
+  and required-check evidence
+* GitHub Enterprise Server, GitHub Enterprise Cloud with data residency (GHE.com), or
+  source-control providers other than GitHub.com
+* Repositories or Projects boards owned by organizations
+* Multiple repositories per project
+* macOS or Linux support
+* Runnable previews, deployment, or cloud resource provisioning
+* Automatic bypass of GitHub branch protections, rulesets, or required approvals
+* Guaranteed correctness or completion without any human intervention
 
-Software Factory should remove routine engineering management from the customer. Where GitHub
-or a consequential business decision requires intervention, the application must explain the
-blocker rather than pretend that the workflow is fully autonomous.
+Where GitHub or a business decision requires intervention, the application explains the
+blocker rather than pretending that the workflow is fully autonomous.
 
 ## 4. Actors and responsibility boundaries
 
 ### 4.1 Customer
 
-The customer describes business goals, supplies domain knowledge, answers questions, approves
-the initial delivery baseline, and requests changes. They use Software Factory rather than
-GitHub to understand progress. They are not expected to write stories, inspect diffs, or review code.
+The customer describes business goals, answers questions, shapes the BRD, and tells the lead
+agent when to start delivery. They use Software Factory rather than GitHub to understand
+progress. They are not expected to write stories, inspect diffs, or review code.
 
 ### 4.2 Installation owner
 
-The installation owner supplies Foundry configuration, connects a GitHub repository and PAT,
-and handles account permissions or repository policies that Software Factory cannot change.
-The owner may also be the customer. Technical setup is separate from ongoing product conversations.
+The installation owner supplies Foundry configuration and connects each project's repository
+and PAT. The owner's personal GitHub account is assumed to have access to Copilot cloud agent
+and Copilot code review. Software Factory still checks these prerequisites and reports any that
+are missing. The owner may also be the customer.
 
 ### 4.3 Foundry lead engineer agent
 
-The lead agent owns requirements elicitation, architecture, planning, backlog management,
-delegation, progress awareness, and customer communication.
+The lead agent owns requirements elicitation, planning, backlog management, delegation,
+progress awareness, and customer communication. It may inspect repository structure, PR
+descriptions, changed-file lists, check results, and Copilot findings for planning and
+situational awareness.
 
-It may inspect repository structure, relevant files, PR descriptions, changed-file lists,
-check results, and Copilot findings to understand the product's current state. Inspection
-is for planning and situational awareness, not an independent code review.
+It also performs the PR lifecycle actions that Copilot cannot perform for itself: moving
+Copilot draft PRs to ready for review, approving pending GitHub Actions workflow runs,
+approving a PR once Copilot code review reports no outstanding findings, and merging
+eligible PRs. Sections 7.4 and 7.5 define the policies for these actions.
 
-It must not author application code, submit code-review verdicts, invent test results,
-or approve a PR on behalf of a reviewer. Technical review findings come from Copilot and
-configured automated checks.
+It must not author application code, form its own code-review verdicts, dismiss or override
+Copilot findings, or invent test results. Its approval reflects Copilot's review outcome and
+the required checks, not an independent judgment of the code.
 
 ### 4.4 GitHub Copilot coding agent
 
-Copilot implements assigned work in the connected repository, writes tests and developer
-documentation, and creates or updates PRs. It also implements fixes requested after review
-or failing checks.
+Copilot implements assigned issues in the connected repository, writes tests and developer
+documentation, and opens PRs. It also implements fixes requested after review, failing
+checks, or merge conflicts.
 
 ### 4.5 GitHub Copilot code reviewer
 
-Copilot code review examines proposed changes and provides findings. Software Factory reads
-those findings and routes actionable feedback to the coding agent. A review request, a
-completed review, and an approving review are distinct events.
+Copilot code review examines proposed changes and provides findings with High, Medium, or Low
+severity. Each review includes an approval assessment in its overview comment. When the
+repository enables Copilot approvals, Copilot can also submit an approving
+review itself. A review request, a completed review, and an approving review are distinct events.
 
 ### 4.6 Local orchestration service
 
-Application code, not the model alone, enforces project boundaries, permissions, action
-policies, deduplication, retry limits, and merge gates. The model proposes and invokes
-typed tools; the service validates every invocation.
+Application code, not the model alone, enforces project boundaries, merge gates, remediation
+limits, and the parallel task limit. The model proposes and invokes typed tools; the service
+validates every invocation.
 
 ## 5. User experience
 
-### 5.1 Start and resume
+### 5.1 Start the application
 
 1. The owner installs dependencies and supplies the global Foundry settings in `.env`.
-2. A documented development/start command launches the local backend and UI.
-3. The application opens or displays a loopback browser URL. It is not a CLI product.
+2. A single documented start command launches the local backend and UI.
+3. The application opens a loopback browser URL. It is not a CLI product.
 4. Existing projects load from the local data directory.
-5. Each project reconciles its GitHub state before the agent takes new external actions.
-6. The customer resumes their prior conversation with the BRD, memory, and progress intact.
 
-An application process hosts the orchestration worker. Closing a browser tab does not stop
-that worker while the application process is running. Stopping the application stops local
-planning, polling, and dispatch, but does not cancel work already assigned on GitHub.
+The application process hosts the orchestration worker, so closing the browser tab does not
+stop it. Stopping the application stops local planning, polling, dispatch, and merging, but
+work already assigned on GitHub continues.
 
 ### 5.2 Project list
 
-The landing page lists existing projects and provides a New project button. Each project
-shows its name, business summary, repository, delivery state, last successful sync, and
-whether it needs customer input or technical intervention.
-
-The UI must distinguish paused orchestration from development that may still be running
-on GitHub. It must not label a cached snapshot as live.
+The landing page lists existing projects and provides a New project button. Each project shows
+its name, business summary, repository, delivery status, and whether it needs customer input
+or owner action.
 
 ### 5.3 Create a project
 
 The creation flow collects:
 
 * Project name and a short business description
-* An existing, empty GitHub repository URL owned by the connected personal account
-* A GitHub PAT entered through a masked control
+* An existing, empty repository URL owned by the user's personal GitHub account
+* A classic PAT for that account with the `repo` and `project` scopes, entered through a
+  masked control
 * An initial BRD, supplied as Markdown, pasted text, or created through a guided conversation
 
-The first version uses a personal GitHub account for both repository and board ownership.
-Infer the board owner from that account. GitHub Projects belong to the account and can be
-linked to a repository; they are not owned by the repository itself.
+The repository and the Projects board are both owned by the user's personal account. GitHub
+Projects belong to an account and can be linked to a repository; they are not owned by the
+repository itself.
 
-No board URL, ID, or owner is required as an additional configuration setting. After setup
-authorization, the lead agent uses GitHub tools to create and link a personal Projects board
-automatically. Selecting an existing personal board is an optional alternative.
-The UI shows the resulting board link in project settings.
-
-Before provisioning anything, show a connection checklist covering repository access,
-issue and project permissions, Copilot availability, review support, billing prerequisites,
-and applicable merge or workflow-approval restrictions.
-
-Saving a draft project must remain possible when a prerequisite is missing. Execution stays
-blocked with a specific explanation. Creating the project does not immediately dispatch work.
+Before provisioning anything, show a connection checklist covering repository access, the
+PAT's scopes, Copilot cloud agent availability, and Copilot code review availability. A project
+can be saved while a prerequisite is missing; execution stays blocked with a specific
+explanation.
 
 ### 5.4 Project workspace
 
 Opening a project exposes:
 
-* Overview with delivered capabilities, current work, blockers, and next steps
-* Chat with the lead engineer agent, including durable conversation history
-* BRD with rendered Markdown, editing, revision history, and proposed changes
-* Documents and memory with readable Markdown artifacts and their provenance
-* Backlog and delivery view reflecting GitHub Issues, board state, and PR progress
-* Settings with repository, board, credential status, and execution controls
-* Activity history showing actions, failures, approvals, and external resource links
+* Chat with the lead engineer agent, with durable conversation history
+* The BRD as rendered Markdown with editing
+* A backlog view showing tasks, board status, assigned Copilot work, PR and review state,
+  and blockers
+* Settings showing the repository, board link, PAT status, and parallel task limit
 
-The exact tab arrangement is a design choice. Chat, the BRD, settings, and current progress
-must be easy to reach without navigating GitHub.
+### 5.5 Start delivery
 
-### 5.5 Start, pause, and change direction
+Delivery starts when the customer tells the lead agent to proceed in chat. The service records
+that delivery has started, so it resumes after a restart. Starting delivery authorizes the
+agent to assign tasks, move Copilot drafts to ready for review, approve workflow runs, approve
+PRs, and merge them into `main` without per-PR customer confirmation. Stopping the application
+is the MVP's way to halt new dispatch and merges.
 
-The customer explicitly starts delivery after reviewing the initial BRD and plan.
-Starting delivery also authorizes automatic merging to `main` once PR approval and all
-required gates are satisfied; no separate per-PR customer confirmation is required.
-While running, the service continues orchestrating without requiring a chat message for
-each action. Pause stops new dispatches and merge requests after any in-flight local action
-has been reconciled. It does not imply cancellation of remote Copilot sessions.
+## 6. Requirements and project context
 
-When requirements change, the agent explains the effect on scope, completed work, active
-PRs, and planned work. It records an approved change before publishing revised instructions.
-Ordinary implementation sequencing within approved scope does not need repeated approval.
-
-## 6. Requirements, architecture, and project memory
-
-### 6.1 BRD as the business baseline
+### 6.1 BRD
 
 Every project has a local `BRD.md` containing:
 
 * Business problem, intended users, and desired outcomes
 * Product scope and explicit exclusions
-* User journeys and functional requirements with stable identifiers
-* Relevant quality, accessibility, privacy, and operational requirements
-* Success measures and testable acceptance criteria
-* Constraints, assumptions, dependencies, and unresolved questions
-* Approved changes and their relationship to prior requirements
+* Functional requirements with stable identifiers
+* Testable acceptance criteria
+* Constraints, assumptions, and open questions
 
-The agent should ask focused questions and identify uncertainty rather than silently invent
-customer intent. A partial BRD is valid during discovery, but unresolved questions that
-affect an implementation task must block that task from becoming ready.
+The agent asks focused questions rather than silently inventing customer intent. An open
+question that affects a task blocks that task from dispatch. The customer and the agent can
+both edit the BRD. The MVP keeps only the current version.
 
-### 6.2 Architecture and delivery plan
+### 6.2 Project context
 
-The lead agent derives a technical architecture and delivery plan from the BRD. These cover
-components, data flows, interfaces, security boundaries, technical risks, validation strategy,
-and incremental milestones.
+The agent maintains a `memory.md` file for decisions, customer preferences, terminology, and
+its current understanding of the repository. It may record architecture notes in other project
+Markdown documents. Before each agent turn, the service assembles bounded context from the
+BRD, memory, recent conversation, and the latest GitHub snapshot.
 
-Architecture decisions record their rationale and alternatives. Decisions with material
-cost, privacy, or scope consequences require customer or owner approval. Implementation
-choices within an approved architecture may be delegated to Copilot.
+The Foundry agent reads local documents through a project-scoped file-read tool that the local
+application executes. Copilot never reads these files; the lead agent translates the relevant
+requirements into self-contained GitHub issues. Credentials are never written to documents,
+memory, or conversation history.
 
-The technology stack of each generated customer product is selected for that project's
-requirements. It is not forced to match Software Factory's own stack.
+## 7. GitHub backlog and delivery
 
-### 6.3 Durable memory
+### 7.1 Set up the repository and board
 
-Project memory is explicit local state, not an assumption that a Foundry conversation will
-remain available forever. It includes goals, customer preferences, terminology, decisions,
-constraints, current understanding of the repository, and unresolved questions.
+An empty repository has no default branch from which Copilot can start. After the customer
+confirms setup, Software Factory creates `main`, sets it as the default branch, and commits a
+minimal README through GitHub APIs. Bootstrap does not upload the BRD or memory, and it is not
+permission for the lead agent to write application code. Application scaffolding, tests, and
+CI definitions are Copilot tasks.
 
-Each substantive memory entry identifies its source, date, and whether it is a confirmed
-fact, approved decision, tentative interpretation, or superseded statement. Inferences
-must not silently become requirements.
+Setup then creates a Projects board owned by the user's personal account, links it to the
+repository, and configures a Status field with Todo, Ready, In progress, In review, Blocked,
+and Done values. Persist the board ID, URL, and field identifiers locally so later runs
+reconnect without board configuration. Re-running setup reuses the stored board instead of
+creating another one.
 
-Before a new agent turn, the service assembles bounded context from the current BRD,
-architecture, memory summary, recent conversation, relevant documents, and latest GitHub
-snapshot. Older conversations can be summarized without deleting their persisted history.
+Setup also creates a `main` ruleset that requires pull requests and status checks but no
+approving reviews. Rulesets on private repositories depend on the account's GitHub plan. When
+a ruleset is unavailable, the service's own merge gates still apply, and the checklist notes
+that GitHub is not enforcing them.
 
-The Foundry agent reads the local BRD and supporting Markdown through a custom, project-scoped
-file-read tool executed by the local application. GitHub Copilot does not read those files;
-the lead agent translates the relevant requirements into self-contained GitHub work items.
+### 7.2 Create tasks
 
-The customer can inspect and correct memory. Raw chat, summaries, and business documents
-remain distinct. Superseded decisions remain traceable but are not presented as current.
-
-### 6.4 Document lifecycle
-
-The agent can create and revise project Markdown documents as understanding evolves.
-Writes are project-scoped, atomic, versioned, and recorded in the activity history.
-Concurrent UI edits must produce a visible conflict rather than silently overwriting text.
-
-Proposed BRD changes remain drafts until approved. Approval records the exact revision;
-approving one revision must not approve subsequent edits. Documents derived from an older
-baseline are marked stale until reconciled.
-
-The application must preserve useful local context independently of model-provider storage.
-Credentials must never be embedded in documents, memory, or conversation exports.
-
-## 7. GitHub backlog and delivery workflow
-
-### 7.1 Bootstrap an empty repository
-
-An empty repository may not have a default branch from which Copilot can start.
-Use `main` as the default and integration branch for every project. After explicit setup
-authorization, Software Factory may create `main`, set it as the default branch, and
-commit a minimal README through GitHub APIs. Bootstrap does not upload the BRD or memory.
-
-This is a narrow bootstrap exception, not permission for the lead agent to write application
-code. Application scaffolding, tests, and CI definitions are subsequent Copilot tasks.
-If GitHub policies prevent bootstrap, setup remains blocked with owner-facing instructions.
-
-By default, the lead agent uses the service's GitHub tools to create a personal Projects
-board, link it to the repository, and configure the backlog fields. If the owner optionally
-selects an existing board, use that board instead. Persist the board ID, URL, and field
-identifiers locally so subsequent runs reconnect without asking for board configuration.
-Repeating setup must not create duplicate boards or issues. Missing Projects permissions
-produce a setup blocker, not a requirement for the customer to create the board manually.
-
-### 7.2 Translate requirements into work
-
-The backlog has epics, user stories, and implementation tasks. Use GitHub Issues as durable
-work records, with native hierarchy where supported and explicit parent links otherwise.
-Projects provides status and prioritization views over those issues.
-
-Every dispatchable task contains:
+The backlog is a flat list of implementation tasks, each a GitHub issue on the board. Every
+task issue contains:
 
 * Business outcome and linked BRD requirement identifiers
-* Parent story or epic and relevant dependencies
 * Bounded implementation scope and explicit exclusions
-* Acceptance criteria and required verification evidence
-* Architecture decisions and repository context needed for implementation
-* The approved specification revision it implements
+* Acceptance criteria and expected verification evidence
+* Relevant architecture decisions and repository context
+* Dependencies on other task issues
 
-Only implementation-sized tasks are assigned to Copilot. Large epics and ambiguous stories
-must be decomposed first. Dependencies form an acyclic graph; dependent work is not dispatched
-until its prerequisites are delivered.
+Each issue is a self-contained implementation brief. Links to local files or requirement
+identifiers alone are not sufficient instructions. Raw chats, memory, and credentials are not
+copied into GitHub. The UI explains that issue content is visible to everyone who can access
+the repository, and it warns explicitly before creating issues in a public repository.
 
-### 7.3 Hand off requirements through GitHub work items
+Only implementation-sized tasks are created. Dependencies form an acyclic graph, and early
+tasks establish scaffolding, tests, and CI so later tasks have checks to satisfy.
 
-The BRD, architecture notes, and project memory remain local. The Foundry agent reads them
-through local file tools, determines the relevant work, and uses GitHub tools to create
-or update the corresponding epics, stories, and implementation tasks.
+### 7.3 Dispatch tasks to Copilot
 
-Each assigned issue is a self-contained implementation brief: it includes the requirements,
-acceptance criteria, constraints, relevant architecture decisions, and repository references
-Copilot needs for that task. Links to local files or requirement identifiers alone are not
-sufficient implementation instructions.
+The service assigns ready task issues to Copilot through GitHub's issue assignment API. A task
+is ready when its open questions are resolved and its dependencies have merged. The service
+dispatches every ready task up to the project's parallel task limit.
 
-Copilot works from the assigned GitHub issue and accessible repository context. It does not
-need access to the local BRD, a repository copy of the BRD, or a separately published
-specification snapshot. There is no automatic document-mirroring requirement.
+Before assigning an issue, the service checks GitHub to confirm that the issue is not already
+assigned to Copilot or linked to an open PR. This prevents duplicate work after a restart or
+retry. A successful assignment means Copilot accepted the work, not that it finished.
 
-Record the source BRD revision and the dispatched issue-body revision or content hash locally.
-This preserves traceability without exposing the source documents and prevents later BRD
-changes from silently rewriting an in-progress task's contract.
+Parallel PRs can conflict. When a PR becomes unmergeable because of conflicts with `main`, the
+lead agent asks Copilot to resolve them through an `@copilot` PR comment. That request counts
+toward the task's remediation limit.
 
-Raw chats, private memory, credentials, and unapproved drafts are not copied into GitHub.
-Only the selected context required for the work item is sent. The UI explains that issue
-content is visible to users who can access the repository, especially for public repositories.
+### 7.4 Coordinate review and remediation
 
-### 7.4 Dispatch implementation
+1. Detect the PR for the assigned task and its latest head SHA.
+2. Wait until the Copilot coding session has finished.
+3. Move the PR from draft to ready for review. Copilot cannot mark its own PRs ready.
+4. Approve pending GitHub Actions workflow runs for the current head.
+5. Request Copilot code review for the current head, or observe a ruleset-triggered review.
+6. Collect review findings and required-check results for the current head.
+7. If findings or failures exist, post a PR comment that mentions `@copilot` and restates
+   each finding with its file, line, severity, and text.
+8. Confirm that a remediation session started, using the eyes reaction on the comment, the
+   "Copilot has started work" timeline event, or new commits.
+9. After that session finishes, return to step 4 for the new head.
+10. Block the task with a visible explanation when the remediation limit is reached.
 
-The service selects ready tasks and assigns them to Copilot using supported GitHub APIs.
-For the first version, issue assignment is the preferred integration because the issue is
-the backlog's work contract. The agent tasks API is an alternative, not a second dispatch
-for the same task.
+Replies to individual Copilot review comments are not visible to Copilot and do not start a
+coding session, so remediation always uses a PR-level `@copilot` comment. Copilot acts only on
+comments from users with write access, which the owner's PAT provides. Request re-review after
+each remediation session finishes rather than on every push, because each review is billed.
 
-Persist dispatch intent before the external call and capture the resulting assignment,
-session identifiers when available, and PR links. An assignment request succeeding means
-the work was accepted, not that implementation completed.
+Workflows on Copilot PRs do not run until a user with write access approves them. The lead
+agent approves pending runs on Copilot PRs for dispatched tasks. Approved runs can expose
+repository secrets to unreviewed code; an owner-confirmation guard is deferred to section 16.
+Alternatively, the owner can disable **Require approval for workflow runs** in the repository's
+Copilot cloud agent settings.
 
-Proposed default: one active implementation task per project. This limits conflicting
-changes while the first version proves its execution loop. Higher concurrency is deferred.
-Different projects remain independently schedulable.
+Proposed default: at most three remediation cycles per task. Persistent failures, missing
+credentials, and exhausted Copilot quota are surfaced explicitly.
 
-### 7.5 Observe progress without becoming the reviewer
+### 7.5 Approve and merge
 
-Track issue state, Copilot session state where exposed, PR lifecycle, linked commits,
-changed-file lists, checks, review requests, review findings, and merge status.
+The service merges a PR into `main` only when every gate passes:
 
-The lead agent maintains a repository understanding tied to observed commit SHAs. It updates
-that understanding after merges and retrieves relevant files when needed for planning.
-A stale repository summary must not be used as evidence of current behavior.
+* Required checks have succeeded for the current head
+* Copilot review has completed for the current head with no unresolved findings
+* An approval for the current head exists through one of the approval paths below
+* All GitHub repository rules are satisfied
+* The PR targets `main`, is not a draft, and is mergeable
+* The head has not changed since the gates were evaluated
 
-The agent reports what is implemented, under review, blocked, or awaiting verification.
-It must not equate an open PR, closed issue, or Copilot session completion with delivered work.
+Merge with the expected head SHA so a late commit cannot slip in. Pending or unknown checks,
+pending mergeability, and missing review evidence are not success.
 
-### 7.6 Coordinate review and remediation
+A PR is approved through one of these paths, in order of preference:
 
-1. Detect the PR associated with the assigned task and the latest head SHA.
-2. Establish that coding has completed sufficiently for checks and review.
-3. Request Copilot code review, or observe a configured automatic review.
-4. Collect review findings and required-check results for the current PR head.
-5. Send actionable findings and failures to Copilot coding agent using a supported
-   continuation mechanism, such as a PR-level instruction referencing the findings.
-6. Track new commits, rerun checks, and request a new review when necessary.
-7. Stop for intervention when limits are exhausted or no supported continuation is available.
+1. Copilot submits an approving review for the current head, when Copilot approvals are
+   enabled and count toward merge requirements.
+2. The lead agent approves the PR when Copilot's latest completed review of the current head
+   leaves no unresolved findings, for example a review with no comments or an overview stating
+   that the PR is ready to approve ("LGTM" or equivalent).
 
-Posting a reply to a Copilot review comment must not be assumed to start a coding session
-or cause the reviewer to respond. The integration must verify the supported continuation
-path. The lead agent can summarize and route findings, but cannot dismiss technical findings
-using its own code-review judgment or silently resolve every review thread.
+The service does not need to know in advance whether Copilot approvals are available. It uses
+path 1 when an approving Copilot review exists for the current head and otherwise applies
+path 2. Lead-agent approval is a service-enforced gate, not model discretion: the service
+verifies that the review's commit SHA matches the head, that no unresolved Copilot review
+threads remain, and that required checks passed. An "LGTM" summary never overrides open
+inline findings.
 
-Proposed default: at most three automated remediation cycles per task before it is blocked.
-Persistent failures, conflicting findings, missing credentials, and exhausted Copilot quota
-are surfaced explicitly.
+GitHub prevents the user who asked Copilot to create a PR from approving it, and the lead
+agent acts through that user's PAT. Lead-agent approval is therefore recorded locally and in a
+PR comment that links the Copilot review and check runs. It is submitted as an approving
+review only if GitHub accepts one. Software Factory does not add a second identity to work
+around this restriction, and it never weakens protections or fabricates approval. If a
+repository rule requires an approval that neither path can satisfy, the task is blocked
+with the owner action required.
 
-### 7.7 Merge and definition of delivered
+A task is delivered only when its PR has merged into `main`. The agent reports what is
+merged, in review, or blocked, and never equates an open PR or a finished Copilot session
+with delivered work. Merged code is not deployed software.
 
-Software Factory automatically merges approved, eligible PRs into `main` without the customer
-managing PRs or enabling a separate merge policy. Starting delivery authorizes this behavior.
-The service requests the merge through its GitHub tool only after every gate is satisfied.
+### 7.6 Requirement changes
 
-Merge gates include:
+In the MVP, a BRD change affects only tasks that have not been assigned. The lead agent may
+revise or reprioritize those tasks and create new ones. It does not edit issues already
+assigned to Copilot; changes to in-flight or merged behavior become new tasks.
 
-* Implementation references the current approved task contract
-* Required checks have completed successfully for the current PR head
-* Required Copilot review has completed for that head and actionable findings are resolved
-  or have an explicit, policy-permitted disposition
-* A valid approving review is present for the current PR head; a comment-only review or
-  completion of a review request is not approval
-* All GitHub-required approvals and other repository rules are satisfied
-* The PR targets `main`, is mergeable, is no longer draft, and has no unresolved scope-change hold
-* No commits have appeared since the gate evaluation
+## 8. Persistence and synchronization
 
-Use expected-head-SHA checks or equivalent supported safeguards when merging. Unknown checks,
-pending mergeability, stale approvals, and absent verification evidence are not success.
-Bootstrap work must establish the expected checks; the absence of a configured test suite is
-not proof that acceptance criteria pass.
+Sources of truth:
 
-The Foundry agent does not submit an approving review. The coding agent's ability to merge
-its own work must not be assumed. GitHub policies can require workflow authorization, draft
-transitions, or an additional eligible reviewer even when automated review is available.
-If the verified integration cannot satisfy a gate, show a blocked state and the required
-owner action. Never weaken protections automatically or fabricate approval.
+* Local documents define business intent.
+* GitHub defines issue, board, PR, check, review, and merge state.
+* SQLite stores conversations, project settings, task-to-issue mappings, and cached snapshots.
 
-A task is delivered only after its intended changes are merged and required evidence is
-recorded. Parent stories and epics roll up completion from their acceptance criteria.
-For the first version, the delivery target is code merged into `main`, not a runnable preview.
-Preview hosting may come later. Merged code is not automatically deployed software or a
-verified customer outcome.
+While the application runs, a backend worker polls GitHub for each active project and invokes
+the lead agent when new information requires action, such as a finished Copilot session, a
+completed review, failed checks, or a merge. Most polls need no model call. Proposed default:
+poll every 60 seconds with rate-limit-aware backoff, plus a manual refresh.
 
-### 7.8 Evolving requirements
+While the application is stopped, Copilot sessions and CI continue on GitHub, but no dispatch,
+remediation, or merge occurs. On restart, the worker refreshes each project's state from
+GitHub before taking new actions. If GitHub is unavailable, local documents and conversations
+remain readable and external actions wait.
 
-An approved requirement change creates a new baseline and an impact assessment covering
-pending tasks, dispatched work, open PRs, and already-delivered capabilities.
-
-The lead agent may revise unstarted work, reprioritize tasks, or create follow-up work.
-For active work, explicitly choose continuation, a supported cancellation, or superseding
-work. Do not silently change the issue underneath an executing agent.
-
-Already-merged behavior is changed through new tasks and PRs. Superseded issues retain links
-to the requirement change and replacement work.
-
-## 8. Persistence, synchronization, and recovery
-
-### 8.1 Sources of truth
-
-* Local approved documents define business intent and architecture decisions.
-* GitHub defines actual issue, board, session, PR, check, review, and merge state.
-* The local database stores conversations, document revisions, mappings, action history,
-  cached snapshots, and recovery checkpoints.
-* Foundry conversations are execution context, not the only copy of project memory.
-
-The UI distinguishes intended backlog state from the last observed remote state.
-Edits made directly in GitHub must be reconciled, not overwritten blindly.
-
-### 8.2 While the application is running
-
-A backend worker polls GitHub for active projects and invokes the lead agent when new
-information requires planning or action. Every poll does not need a model call.
-
-Proposed default: poll active work every 60 seconds with pagination, conditional requests
-where supported, and rate-limit-aware backoff. Provide manual refresh.
-Public webhook hosting is not required for the first version.
-
-Use per-project leases or OS-backed locks so multiple browser tabs or application instances
-cannot dispatch the same task concurrently. Persist action intent, outcome, and GitHub IDs.
-After a timeout with an uncertain result, reconcile before retrying a mutation.
-
-### 8.3 While the application is stopped
-
-Already-started Copilot sessions, GitHub-hosted CI, and configured automatic review or
-auto-merge may continue under GitHub's own policies. They can also stop at approval gates.
-
-No new local planning, dispatch, remediation, or merge request occurs while Software Factory
-is stopped. Persistent Foundry agent definitions do not make the local worker always-on.
-Continuous autonomous orchestration while the application is off is out of scope.
-
-### 8.4 Resume and reconciliation
-
-On startup or reconnection:
-
-1. Restore local project files, conversation history, and pending action records.
-2. Fetch current GitHub work and relevant changes since the last successful sync.
-3. Reconcile uncertain mutations before issuing new ones.
-4. Refresh PR heads, checks, reviews, dependency state, and merged work.
-5. Update repository understanding, progress summaries, and board mappings.
-6. Resume eligible work only after reconciliation succeeds.
-
-If GitHub is unavailable, local documents and past conversations remain readable.
-New messages can be saved, but live progress claims and external mutations remain blocked
-or explicitly pending. Credential errors must not become empty, success-shaped snapshots.
-
-## 9. Architecture and implementation direction
+## 9. Architecture
 
 ### 9.1 Component boundaries
 
@@ -469,294 +358,316 @@ flowchart LR
     GH --> CI[GitHub checks and merge rules]
 ```
 
-### 9.2 Proposed Software Factory stack
+### 9.2 Proposed stack
 
 * Python backend with FastAPI, Pydantic settings, and the Microsoft Foundry SDK
 * React and TypeScript browser UI
-* Streaming chat and activity updates through server-sent events
-* SQLite for transactional local state and Markdown for readable project artifacts
-* Windows Credential Manager through the OS keyring for project PATs, with only credential
-  references in project configuration
-* GitHub REST and GraphQL clients behind a versioned integration boundary
-* A worker hosted with the backend, without an external queue or scheduler service
+* Streaming chat and progress updates through server-sent events
+* SQLite for local state and Markdown for project documents
+* GitHub REST and GraphQL clients behind a single integration module
+* A worker hosted in the backend process, with no external queue or scheduler
 
-These are proposed defaults, not inherited requirements from Bolt Reporter. Production
-packaging can serve a built frontend from the backend; development may run separate processes
-behind a same-origin proxy. A documented single start command should launch the full local UI.
+Development may run the backend and UI as separate processes behind a same-origin proxy, but a
+single documented start command launches both.
 
 ### 9.3 Agent tools
 
-Provide typed tools for reading and revising project documents, proposing BRD changes,
-reading repository context, managing issues and board fields, dispatching Copilot work,
-observing PRs and checks, requesting review, routing remediation, and conditionally merging.
+Provide typed tools for:
 
-The custom local file-read tool retrieves the BRD or supporting Markdown from the active
-project's document root and returns its content and revision to the Foundry agent. The local
-application executes the read; Foundry does not need direct filesystem access. Separate
-GitHub tools let the agent turn that context into work items and assign them to Copilot.
+* Reading and writing project documents
+* Reading repository context
+* Creating and updating task issues and board fields
+* Assigning issues to Copilot
+* Reading PRs, checks, and reviews
+* Requesting Copilot review
+* Posting `@copilot` remediation comments
+* Marking PRs ready for review
+* Approving workflow runs
+* Approving and merging PRs
 
-Bind project, repository, board, and allowed document roots in server-side execution context.
-The model must not supply arbitrary credentials, repository destinations, filesystem paths,
-shell commands, or merge-policy overrides.
-
-Reuse Foundry agent versions when their model, instructions, and tool schemas are unchanged.
-Bound each agent run and persist its result or failure. Tools with side effects require
-durable action records and policy validation independently of conversational wording.
+Bind the project, repository, board, and document directory in server-side execution context.
+The model must not supply credentials, repository destinations, filesystem paths, shell
+commands, or merge-policy overrides. Reuse Foundry agent versions when their model,
+instructions, and tool schemas are unchanged.
 
 ## 10. Local data and configuration
 
 ### 10.1 Data directory
 
-The initial release supports Windows. Use `%LOCALAPPDATA%\SoftwareFactory` as the per-user
-data directory, with `SOFTWARE_FACTORY_HOME` as an override. Cross-platform support is deferred.
+Use `%LOCALAPPDATA%\SoftwareFactory` as the per-user data directory, with
+`SOFTWARE_FACTORY_HOME` as an override.
 
 ```text
 SoftwareFactory\
   .env
   factory.db
+  secrets\
   logs\
   projects\
     <project-id>\
       project.json
       BRD.md
-      architecture.md
-      delivery-plan.md
       memory.md
-      decisions\
       documents\
-      revisions\
 ```
 
-The document names beyond `BRD.md` are conventions, not a requirement to create empty files.
-The database contains durable chat and revision records; Markdown files expose current
-readable artifacts. The owner must be able to back up both together.
+`project.json` contains non-secret settings such as the repository, board IDs, and parallel
+task limit. Each project's PAT is stored in the `secrets\` directory, separate from
+`project.json` and documents. PATs are never logged, never returned to the browser after entry,
+and never passed to the model. Deleting a local project does not delete its GitHub repository,
+board, issues, or PRs.
 
-`project.json` contains non-secret settings and references. No PAT is stored there.
-Deleting or archiving a local project must not delete its GitHub repository, board, issues,
-or PRs. Any local data deletion requires confirmation and explains remote work may continue.
+### 10.2 Foundry settings and authentication
 
-### 10.2 Global Foundry settings
-
-The installation owner supplies Foundry configuration in `.env`. Proposed variables are:
+The installation owner supplies Foundry configuration in `.env`:
 
 ```dotenv
 AZURE_AI_PROJECT_ENDPOINT=
 AZURE_AI_MODEL_DEPLOYMENT_NAME=
+AZURE_TENANT_ID=
+AZURE_TOKEN_CREDENTIALS=dev
 SOFTWARE_FACTORY_AGENT_NAME=software-factory-lead
 SOFTWARE_FACTORY_HOME=
 LOG_LEVEL=INFO
 ```
 
-Use a documented Azure credential flow supported by the selected SDK. `DefaultAzureCredential`
-can use local Azure sign-in or service-principal environment variables such as `AZURE_TENANT_ID`,
-`AZURE_CLIENT_ID`, and `AZURE_CLIENT_SECRET`. Document the required Foundry roles.
-Do not assume an API key alone supports every agent-service operation.
+Software Factory authenticates to Foundry only with Microsoft Entra ID; it does not support
+API keys. The backend uses `DefaultAzureCredential`, which requests tokens for the
+`https://ai.azure.com/.default` scope. `AZURE_TOKEN_CREDENTIALS=dev` limits the credential
+chain to developer sign-ins such as the Azure CLI, Azure Developer CLI, and Visual Studio Code.
+`AZURE_TENANT_ID` pins the tenant that hosts the Foundry project when the signed-in user
+belongs to several tenants.
 
-Load process environment first, then a working-directory `.env`, then the data-directory
-`.env`. Publish a placeholder-only `.env.example` in the new project.
-Neither global credentials nor PATs are sent to the browser after initial entry or passed
-to the model. The UI shows connection status, not secret values.
+Before starting Software Factory, the owner signs in with `az login --tenant <tenant-id>`.
+The signed-in user needs the **Foundry User** role on the Foundry project or resource, and
+assigning that role requires Owner or User Access Administrator at that scope.
 
-### 10.3 Minimum persisted entities
+At startup, the service requests a token and calls the project endpoint. The UI shows Foundry
+connection status with specific guidance: sign in again when no credential is available or a
+token has expired, and request the Foundry User role when the call returns 403 Forbidden.
+Credentials and tokens are never stored by Software Factory, sent to the browser, or passed to
+the model.
 
-* Project identity, repository and board IDs, credential reference, and execution policy
-* Document revision, approval, and content hash
-* Conversation, message, summary, memory provenance, and decision
-* Requirement, work-item mapping, parent relationship, dependency, and target baseline
-* Copilot dispatch, linked issue or session, PR, observed head SHA, and remediation count
-* Action intent, attempt, result, external IDs, error, and reconciliation state
-* Sync checkpoint, snapshot timestamp, and customer-facing activity event
-
-Business delivery state and technical execution state remain separate. A failed API call
-does not mean a requirement failed, and a completed agent session does not mean a story shipped.
+Load the process environment first, then a working-directory `.env`, then the data-directory
+`.env`. Publish a placeholder-only `.env.example`.
 
 ## 11. GitHub capability and permission contract
 
-GitHub features, preview APIs, account entitlements, and organization policies evolve.
-The integration must validate the configured account and repository rather than treating a
-valid PAT as proof that Copilot, Projects, review, and merge are all available.
+GitHub features, preview APIs, and account entitlements evolve. Setup validates each
+capability rather than treating a valid PAT as proof that Copilot, Projects, review, and merge
+are all available. Issue assignment to Copilot is in public preview, so the integration pins a
+tested contract and returns actionable errors.
 
-The current documented API surface includes issue assignment to Copilot and a separate
-agent tasks API. Both are identified as public preview in GitHub's API usage guide.
-Prefer a tested, pinned integration contract with capability checks and actionable errors.
+Each project uses a classic PAT for the owner's personal account with these scopes:
 
-For issue assignment, GitHub currently documents metadata read access and Actions, Contents,
-Issues, and Pull requests read/write permissions for fine-grained PATs, or `repo` scope for
-classic PATs. Projects access must be checked separately. GitHub's Projects GraphQL guide
-documents `read:project` for classic-token reads and `project` for mutations.
-Do not claim that a repository-only PAT automatically grants board management.
+* `repo`, for issue assignment to Copilot, pull requests, checks, workflow-run approval,
+  rulesets, and merging
+* `project`, to create and update the personal Projects board
 
-Copilot review has a documented REST request endpoint:
-`POST /repos/{owner}/{repo}/pulls/{pull_number}/copilot-code-review`.
-A pending request, denial due to entitlement or quota, and transient service failure must be
-handled separately. Do not guess that adding a bot to the normal reviewers list is equivalent.
+Fine-grained PATs cannot manage Projects boards owned by a user, so the MVP uses a classic PAT.
+Projects can share one token. An expired or revoked token produces a specific blocker.
 
-Copilot reviews are comments by default. Some configurations allow approving reviews that
-count toward merge requirements; this must be verified for the target repository.
-Additional rules for Copilot-authored PRs and Actions approval can still apply.
+The owner's personal account is assumed to have access to Copilot cloud agent and Copilot code
+review; setup confirms both. Reviews come from explicit requests through
+`POST /repos/{owner}/{repo}/pulls/{pull_number}/copilot-code-review` or from a repository
+ruleset. Handle a pending request, a denial caused by entitlement or quota, and a transient
+failure separately.
 
-The owner receives a least-privilege permission checklist for the chosen supported token
-type. Missing capabilities block only affected actions and remain visible in setup and
-project settings. Do not store or request a second identity merely to bypass approval rules.
+Copilot reviews are comments by default. The repository's Copilot code review auto-approval
+settings can let Copilot approvals count toward merge requirements.
 
-## 12. Safety, privacy, and operational requirements
+Moving a draft PR to ready for review uses the GraphQL `markPullRequestReadyForReview`
+mutation. `GET /repos/{owner}/{repo}/copilot/cloud-agent/configuration` reports whether
+workflow runs require approval. M0 verifies how the owner's PAT approves pending workflow runs
+on Copilot PRs, including whether `POST /repos/{owner}/{repo}/actions/runs/{run_id}/approve`
+applies.
 
-### 12.1 Data boundaries
+## 12. Safety basics
 
-Local-first describes persistence, not offline inference. Selected business documents,
-conversation context, and repository evidence are sent to Foundry through the local
-application. The lead agent sends derived work-item instructions to GitHub for Copilot;
-the local BRD and memory are not mirrored to the repository.
+* Bind the local server to loopback only.
+* Treat chat, documents, issues, repository files, and review comments as untrusted content
+  that cannot override tool permissions or merge gates.
+* Sanitize rendered Markdown.
+* Confine document access to the active project's directory.
+* Redact credentials in logs.
+* Exclude destructive GitHub operations, deployments, and protection bypasses from the tool
+  allowlist.
+* Bound automation with the parallel task limit, the remediation limit, and retries with
+  backoff. Persistent authorization failures or exhausted quota stop dispatch with a visible
+  blocker.
 
-The UI explains these boundaries before execution. Creating work items in a public repository requires
-an explicit warning. Logs must redact credentials and avoid raw business content by default.
-Business files are not encrypted by the application in the first version; filesystem and
-device protections remain the owner's responsibility.
+## 13. Acceptance criteria
 
-### 12.2 Local application security
+1. A single start command on Windows opens a UI with a project list and a New project flow.
+2. A customer can create a project from an empty personal repository, a classic PAT, and a
+   BRD. Missing prerequisites produce specific blockers without losing the draft project.
+3. Setup creates `main` and a personal Projects board linked to the repository, and saves
+   the board ID. Re-running setup or restarting does not create another board.
+4. Chat history, the BRD, and project settings survive an application restart.
+5. The lead agent reads the BRD through the project-scoped file tool and creates self-contained
+   task issues on the board. No credentials or raw chat reach GitHub.
+6. After the customer says to proceed, ready tasks are assigned to Copilot in parallel up to the
+   limit, dependencies are respected, and a restart does not assign a task twice.
+7. The lead agent moves Copilot drafts to ready for review, approves pending workflow runs, and
+   requests Copilot review without owner action.
+8. Copilot findings and failed checks reach Copilot through `@copilot` PR comments. After three
+   remediation cycles, the task is blocked with a visible explanation.
+9. A PR with a clean Copilot review and passing checks for its current head is approved and
+   merged into `main` using the expected head SHA. Unresolved findings, failing or pending
+   checks, or a new commit prevent the merge.
+10. PAT expiration, missing permissions, Copilot quota exhaustion, and network loss preserve
+    local data and show actionable errors.
 
-Bind to loopback by default. Protect local APIs against cross-origin requests, cross-site
-request forgery, and unauthorized access by other browser origins. Do not treat loopback
-binding alone as authentication. Use an installation-session authorization mechanism.
+Use automated tests against recorded GitHub responses for repeatability, plus an opt-in live
+test against a disposable personal repository and board that covers the complete
+issue-to-Copilot-to-review-to-merge path.
 
-Sanitize rendered Markdown and treat chat, documents, issues, repository files, and review
-comments as untrusted content. None can override tool permissions or approval policy.
-Confine document access to the selected project's permitted paths, including symlink checks.
+## 14. Milestones
 
-### 12.3 Bounded automation
+### M0: Prove the GitHub integration
 
-Persist start, pause, approval, and merge-policy decisions. Stop new dispatch on persistent
-authorization failures, dependency conflicts, exhausted retries, or exhausted service quota.
-Use bounded retries with backoff and an explicit intervention state.
+Use a disposable personal repository and Projects board to verify classic PAT scopes,
+bootstrap to `main`, board creation, Copilot assignment, review requests, `@copilot`
+remediation, draft-to-ready transitions, workflow-run approval, Copilot approval availability,
+lead-agent approval under the requester restriction, and merging.
 
-Show dispatch and remediation counts, active work, and available service-usage information.
-Do not promise a dollar spending cap unless it can be enforced across both Foundry and GitHub.
-No destructive GitHub operation, production deployment, or protection bypass is in the
-first-version tool allowlist.
+### M1: Local app and project setup
 
-### 12.4 Observability and responsiveness
+Deliver the start command, project list, creation flow with the connection checklist, Foundry
+chat with durable history, and BRD editing.
 
-Every external mutation has an auditable action record and a visible result or pending state.
-Every progress summary carries a last-sync timestamp and links to its evidence.
-Long-running calls do not block UI navigation or document viewing.
+### M2: Backlog and dispatch
 
-Proposed targets: show chat activity within two seconds of accepting a message, and reflect
-GitHub changes within two successful active polling intervals. These do not imply a bound
-on model response time, Copilot queue time, CI runtime, or third-party availability.
+Deliver board provisioning, task issue creation, parallel dispatch, polling, and the backlog view.
 
-## 13. First-version acceptance criteria
+### M3: Review and merge loop
 
-1. Starting the application on Windows opens a usable UI with a project list and New project flow,
-   without requiring routine CLI interaction.
-2. A customer can create a project from an empty repository, PAT, and draft BRD; missing
-   permissions produce explicit setup blockers without losing the draft. With the required
-   permissions, the agent automatically creates and links a personal Projects board,
-   configures its backlog fields, and saves its ID and URL locally without additional
-   required board configuration. Project settings show the board link, and restarting
-   does not create another board. Selecting an existing board remains optional.
-3. Chat history, BRD revisions, and corrected project memory survive a full application restart.
-4. An approved baseline produces traceable epics, stories, and bounded tasks in GitHub,
-   with the repository and linked Projects board owned by the connected personal account.
-5. Empty-repository bootstrap establishes `main` as the default branch without the Foundry agent
-   generating application code.
-6. The Foundry agent reads the local BRD through a project-scoped file tool and creates
-   self-contained GitHub work items. Copilot implements from those items without reading
-   the local BRD or requiring a mirrored specification. Drafts and secrets are excluded.
-7. Starting delivery dispatches an eligible task once. Repeating reconciliation after an
-   interrupted or timed-out assignment does not create duplicate work.
-8. A PR triggers Copilot review and, when needed, a bounded remediation cycle delegated
-   to Copilot coding agent. The lead agent submits no code-review approval or verdict.
-9. A new PR head invalidates prior local gate evaluation. Pending, failed, or missing
-   required checks prevent a merge request.
-10. With a verified supported repository policy, an approved PR automatically merges into
-    `main` once all gates pass, without per-PR customer confirmation or a runnable preview.
-    A comment-only review does not trigger merging. An unsatisfied approval rule produces
-    a blocker, not an automatic bypass.
-11. Work can complete on GitHub while the application is stopped. Restart reconciles
-    that work before dispatching or reporting new progress.
-12. An approved BRD change updates pending work and explicitly handles affected active PRs;
-    no executing task silently changes specification revision.
-13. Pausing prevents new dispatches and merge requests while preserving visibility into
-    previously started remote work.
-14. PAT expiration, Projects denial, Copilot quota exhaustion, and network loss preserve
-    local data and expose actionable errors.
-15. Attempts to cross project boundaries, publish secrets, execute repository instructions
-    as policy, or call local APIs from an unauthorized origin are rejected.
+Deliver ready-for-review transitions, workflow-run approval, review requests, remediation,
+conflict handling, and merge gates.
 
-Use automated adapter and state-machine tests for repeatability, plus an opt-in live test
-against a disposable repository and board. Live tests must verify the complete
-issue-to-Copilot-to-review-to-merge path using the intended token and policies.
-Do not declare unattended delivery supported solely from mocked API tests.
+## 15. Decisions and open questions
 
-## 14. Delivery milestones
+Confirmed decisions:
 
-### M0: Prove GitHub integration
+* Use personal GitHub accounts. The repository and Projects board are owned by the user's
+  personal account, which is assumed to have access to Copilot cloud agent and code review.
+* The owner supplies an existing, empty personal repository.
+* Use a classic PAT with the `repo` and `project` scopes. Setup still validates capabilities.
+* Create and link the personal Projects board automatically.
+* Use `main` as the default and integration branch. The delivery target is merged code in
+  `main`, with no runnable preview.
+* Merge automatically after approval and passing checks, without per-PR customer confirmation.
+* Use Copilot approvals when present; otherwise the lead agent approves when Copilot's review
+  of the current head leaves no unresolved findings.
+* Route Copilot findings to Copilot coding agent through `@copilot` PR comments.
+* The lead agent moves Copilot drafts to ready for review and approves CI workflow runs.
+* Run multiple tasks per project in parallel.
+* Support Windows only.
 
-Use a disposable personal-account repository and Projects board to verify PAT permissions,
-empty-repository bootstrap to `main`, Copilot assignment, review requests, remediation
-continuation, draft transitions, workflow authorization, and automatic merging after approval.
-Record supported and blocked paths before promising full autonomy.
+Proposed defaults:
 
-### M1: Local workspace and discovery
+* Python with FastAPI, React with TypeScript, server-sent events, SQLite, and Markdown
+* Up to three parallel tasks per project and three remediation cycles per task
+* Poll GitHub every 60 seconds while the application runs
+* A `main` ruleset that requires pull requests and status checks, without required approvals,
+  where the account's plan supports rulesets for the repository
 
-Deliver Windows application startup, project list, creation/settings flows, secret storage, Foundry
-chat, durable conversations, BRD editing, memory, and document revision history.
+Open questions:
 
-### M2: Planning and backlog
-
-Deliver baseline approval, architecture and planning documents, requirement identifiers,
-local file-read tools, GitHub board provisioning, issue hierarchy, dependencies, and
-self-contained implementation briefs derived from the local BRD.
-
-### M3: Orchestrated implementation
-
-Deliver explicit start/pause, dispatch, polling, PR observation, review requests, remediation
-limits, merge gates, and business-facing progress summaries.
-
-### M4: Recovery and hardening
-
-Deliver restart reconciliation, uncertain-action recovery, edit conflicts, cross-project
-isolation, local API protections, backups, audit views, and end-to-end acceptance verification.
-
-## 15. Confirmed decisions, proposed defaults, and open questions
-
-The following decisions are confirmed:
-
-* Use a personal GitHub account for repository and Projects board ownership.
-* Create and link the Projects board automatically, with no additional required board
-  configuration. Selecting an existing personal board is optional.
-* Use `main` as the default and integration branch.
-* Automatically merge PRs after approval and successful required checks, subject to all
-  repository rules, without separate per-PR customer confirmation.
-* Deliver code to `main`; no runnable preview is required for the first version.
-* Build and validate the initial release for Windows. Other operating systems and previews
-  may be considered later.
-
-The following are proposed defaults, not additional confirmed customer requirements:
-
-* Use Python/FastAPI and React/TypeScript for Software Factory itself.
-* Start delivery only after approval of the initial BRD and plan.
-* Begin with one active implementation task per project and three remediation cycles.
-* Use polling while the application process is running, without a hosted webhook receiver.
-* Store PATs in the OS keyring and local operational state in SQLite.
-
-Resolve these questions during refinement:
-
-1. Which PAT type provides the verified end-to-end permission set for the personal repository
-   and personal Projects board?
-2. Which GitHub policy configuration permits the desired review and merge workflow,
-   and what owner intervention remains unavoidable?
-3. How should the agent support DS-specific work requiring datasets, experiments, or compute
+1. Can Copilot approvals be enabled for the personal repository? The workflow does not depend
+   on the answer, but M0 should record it.
+2. Does GitHub accept an approving review from the PAT owner on Copilot PRs that owner
+   requested, or is lead-agent approval recorded only locally and in a PR comment?
+3. How should the agent support data science work that needs datasets, experiments, or compute
    beyond a GitHub coding environment?
-4. Which business changes require renewed approval versus execution within existing scope?
-5. What Windows packaging and installation experience should the first distribution provide?
+4. What Windows packaging and installation experience should the first distribution provide?
 
-## 16. GitHub integration references
+## 16. Later
+
+These capabilities are deferred beyond the MVP. Their key requirements are kept here for
+future planning.
+
+### 16.1 Start and pause controls
+
+Add explicit Start and Pause controls. Start requires approval of the initial BRD and plan.
+Pause stops new dispatches and merge requests after in-flight local actions finish, without
+cancelling remote Copilot sessions. The UI distinguishes paused orchestration from work still
+running on GitHub.
+
+### 16.2 Epic, story, and task hierarchy
+
+Organize the backlog into epics, user stories, and implementation tasks using native issue
+hierarchy or explicit parent links. Decompose large epics and ambiguous stories before dispatch,
+and roll up parent completion from acceptance criteria.
+
+### 16.3 Restart reconciliation and action records
+
+Persist each mutation's intent before the external call, with its outcome and external IDs.
+Reconcile uncertain mutations before retrying them. Use per-project leases or OS locks so
+multiple tabs or application instances cannot dispatch the same task. Keep sync checkpoints,
+never present credential errors as empty success-shaped snapshots, and never label a cached
+snapshot as live.
+
+### 16.4 Windows Credential Manager for PATs
+
+Store PATs in Windows Credential Manager through the OS keyring, keeping only credential
+references in project configuration.
+
+### 16.5 BRD revisions and approval
+
+Make document writes atomic and versioned. Keep proposed BRD changes as drafts until approved,
+record the exact approved revision, and mark derived documents stale until reconciled.
+Concurrent UI edits produce a visible conflict. Each dispatched issue records its source BRD
+revision and issue-body hash.
+
+### 16.6 Structured memory with provenance
+
+Each memory entry records its source, date, and status as a confirmed fact, approved decision,
+tentative interpretation, or superseded statement. Inferences never silently become
+requirements. The customer can inspect and correct memory, and older conversations are
+summarized without deleting their history.
+
+### 16.7 Architecture and delivery plan documents
+
+Maintain `architecture.md` and `delivery-plan.md` covering components, data flows, interfaces,
+security boundaries, risks, validation strategy, and milestones. Decisions record rationale and
+alternatives, and those with material cost, privacy, or scope consequences require customer or
+owner approval.
+
+### 16.8 Requirement-change impact assessment
+
+An approved change creates a new baseline and an impact assessment covering pending tasks,
+dispatched work, open PRs, and delivered capabilities. Active work is explicitly continued,
+cancelled, or superseded, and superseded issues link to the change and replacement work.
+Define which business changes require renewed approval.
+
+### 16.9 Owner confirmation for workflow-file CI approvals
+
+Require owner confirmation before approving workflow runs on PRs that modify
+`.github/workflows/**` or other owner-designated sensitive paths.
+
+### 16.10 Activity and audit history
+
+Record an auditable entry for every external mutation and show an activity view with actions,
+failures, approvals, and resource links. Progress summaries carry last-sync timestamps and
+evidence links. Show dispatch and remediation counts and available service-usage information.
+
+### 16.11 Local API hardening
+
+Protect local APIs against cross-origin requests, cross-site request forgery, and other browser
+origins with an installation-session authorization mechanism. Loopback binding alone is not
+authentication.
+
+## 17. GitHub integration references
 
 Checked on 2026-11-16. Revalidate during M0 because preview contracts and policies may change.
 
 * [Using Copilot cloud agent via the API](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/use-cloud-agent-via-the-api)
+* [Asking Copilot to make changes to an existing pull request](https://docs.github.com/copilot/how-tos/use-copilot-agents/cloud-agent/make-changes-to-an-existing-pr)
 * [Using GitHub Copilot code review](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/use-code-review)
+* [Configuring code review by GitHub Copilot](https://docs.github.com/en/copilot/how-tos/copilot-on-github/set-up-copilot/configure-code-review)
 * [REST API endpoints for Copilot code review](https://docs.github.com/en/rest/pulls/copilot-code-review)
+* [Configuring settings for GitHub Copilot in the cloud](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/configuring-agent-settings)
+* [REST API endpoints for Copilot cloud agent repository management](https://docs.github.com/en/rest/copilot/copilot-cloud-agent-management)
 * [Using the API to manage Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-api-to-manage-projects)
 * [Copilot cloud agent risks and mitigations](https://docs.github.com/en/copilot/concepts/agents/cloud-agent/risks-and-mitigations)
