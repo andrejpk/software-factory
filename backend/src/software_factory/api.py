@@ -199,6 +199,7 @@ def create_app(settings: Settings, store: Store, bus: EventBus, orch: Orchestrat
         def spa(path: str) -> FileResponse:
             if path.startswith("api/"):
                 raise HTTPException(404)
-            return FileResponse(FRONTEND_DIST / "index.html")
+            # Asset names are content-hashed, so only index.html must revalidate to pick up new builds.
+            return FileResponse(FRONTEND_DIST / "index.html", headers={"Cache-Control": "no-cache"})
 
     return app

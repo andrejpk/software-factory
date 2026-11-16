@@ -83,7 +83,10 @@ function Chat({ id, messages, thinking, onSent }: { id: string; messages: Messag
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, thinking]);
+  // Braces matter: newer browsers return a Promise from scrollIntoView, which React would call as a cleanup.
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, thinking]);
 
   async function send() {
     if (!text.trim()) return;
