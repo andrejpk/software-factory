@@ -23,7 +23,9 @@
     "github/list_branches",
     "github/list_commits",
     "github/actions_list",
-    "github/get_job_logs"
+    "github/get_job_logs",
+    "github/update_pull_request_draft_state",
+    "github/update_pull_request_body"
   ],
   "triggers": {
     "issue_labeled": {

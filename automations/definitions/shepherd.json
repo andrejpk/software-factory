@@ -22,7 +22,8 @@
     "github/actions_get",
     "github/get_job_logs",
     "retry_workflow_run",
-    "github/get_file_contents"
+    "github/get_file_contents",
+    "github/update_pull_request_draft_state"
   ],
   "triggers": {
     "pull_request_review_submitted": {

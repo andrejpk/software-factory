@@ -5,13 +5,16 @@ description: What the Copilot automations port loses or changes compared with th
 
 ## Summary
 
-The loop **can** run on GitHub-native pieces with no custom backend. In the live run, it went
-from BRD to plan to assignment, implementation, Copilot review, one `@copilot` fix round,
-re-review, CI and a gated squash merge
-([sandbox PR #5](https://github.com/andrejpk/sf-automation-sandbox/pull/5), merged 2026-11-20).
+The loop **runs** on GitHub-native pieces with no custom backend. The current (v2) design is
+event-driven. Stages hand off only through labels, PRs and reviews. No automation assigns
+Copilot or `@mentions` it, and the implementer automation writes the code itself. In
+[andrejpk/sf-gh-tier](https://github.com/andrejpk/sf-gh-tier), three task PRs merged through
+the chain, including one review → fix → re-review cycle. Only **one human step** remains:
+releasing held CI runs on agent pushes. See [v2 live run](#v2-live-run-event-driven).
 
-It is **not unattended yet**. A person had to step in at three points that the original backend
-handles in code:
+The first design (v1, below) assigned Copilot cloud agent and woke it with `@copilot`. It ran
+end to end once ([sandbox PR #5](https://github.com/andrejpk/sf-automation-sandbox/pull/5)),
+but a person had to step in at three points that the original backend handles in code:
 
 1. **Starting Copilot sessions.** When an automation assigns Copilot to an issue, the session
    doesn't start. This happened on both tasks (#2, #3).
@@ -23,7 +26,47 @@ handles in code:
 Enforcement also moves from service code (`gates.py`) to prompt text. And there is no
 first-party place to watch or steer the factory. That's the UI gap, covered below.
 
-## Live run evidence
+## v2 live run (event-driven)
+
+Repo: [andrejpk/sf-gh-tier](https://github.com/andrejpk/sf-gh-tier) (private, personal
+automations acting as `andrejpk`). BRD: a multiplayer tier-list party game, planned into
+tasks #3–#7 with dependency lists.
+
+| Step | Trigger → action | Evidence | Human? |
+| --- | --- | --- | --- |
+| Review | `sf:review` label → `sf-reviewer` posts a COMMENT review with `<!-- sf:review verdict=… -->` | PR #8 clean; PR #10 findings (count 1) | No |
+| Gate and merge | review submitted → `sf-shepherd` checks verdict, CI, head SHA; merges with an evidence comment | PR #8 (7e79baa), [PR #9](https://github.com/andrejpk/sf-gh-tier/pull/9), [PR #10](https://github.com/andrejpk/sf-gh-tier/pull/10) (fac4b1c) merged | No |
+| Dispatch next | `issue_closed` → `sf-dispatcher` labels ready tasks `sf:in-progress` (WIP 2, dependencies respected) | #4 and #5 started after #3; #6 waited for #5 and started after it; #7 waits for #6 | No |
+| Implement | `sf:in-progress` → `sf-implementer` writes code with `report_progress`, opens the PR, labels `sf:pr` + `sf:review` | PRs #9 and #10 opened with no assignment and no `@copilot` (≈15 credits per task) | No |
+| Fix | shepherd posts findings + `sf:fix` → implementer fix mode pushes to the PR head and relabels `sf:review` | PR #10: fix pushed 18:13, clean re-review 18:17 | No |
+| Release held CI | — | Agent pushes produce `action_required` runs. `retry_workflow_run` returns 409. `gh run rerun` as a user works | **Yes** |
+
+Problems found and fixed in the prompts during the run:
+
+- `create_pull_request` from an automation always opens a **draft**, even with `draft:false`.
+  The implementer and the shepherd now call `update_pull_request_draft_state`.
+- A PR created seconds earlier may not resolve yet ("Could not resolve to an Issue"). The
+  implementer retries labelling, and PR #9 lost its labels and `Closes #4` the first time.
+- `pull_request_merged` and `issue_closed` both fire on a merge, which duplicated dispatcher
+  comments. The dispatcher now listens to `issue_closed` only.
+
+Gaps that remain in v2:
+
+- **Held CI** (the one human step). There's no automation tool that approves `action_required`
+  runs. Options: a gh-aw `approve-workflow-run` safe output, or relaxing the repo's Actions
+  approval setting for the agent.
+- **No trigger on CI success.** `workflow_run` fires on failure only, so after a person
+  releases CI and it passes, the shepherd waits for its hourly sweep or a manual run (PR #10).
+- **Stale task state.** The first #5 implementer task still reports `in_progress` long after
+  its session pushed, so task state is not a reliable "done" signal. The factory reads the
+  labels instead.
+- **Public repos disable cloud automations.** Making sf-gh-tier public set
+  `automations_enabled:false` and the automations API returned 404. Making it private again
+  restored them with their configuration intact. A public demo needs a private factory repo.
+- **Personal automations can't approve their own PRs**, so reviews are COMMENT plus a verdict
+  marker and the shepherd enforces it. That's prompt enforcement, not a branch-protection gate.
+
+## v1 live run evidence
 
 Sandbox: [andrejpk/sf-automation-sandbox](https://github.com/andrejpk/sf-automation-sandbox)
 (private, GitHub Free, personal automations acting as `andrejpk`). BRD: a three-task Python CLI

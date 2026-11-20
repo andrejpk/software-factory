@@ -6,7 +6,7 @@
     "_conventions.md",
     "reviewer.md"
   ],
-  "run_limit_credits": 20,
+  "run_limit_credits": 30,
   "daily_limit_credits": 80,
   "tools": [
     "github/issue_read",

@@ -8,8 +8,8 @@ description: Experimental port of the Software Factory loop to Copilot cloud aut
 This folder re-implements the Software Factory loop (see the root [SPEC.md](../SPEC.md)) on
 GitHub-native pieces only:
 
-* **Copilot cloud automations** (public preview) run the coordinating "lead engineer" roles.
-* **Copilot cloud agent** writes code; **Copilot code review** reviews it.
+* **Copilot cloud automations** (public preview) run every role, including the coding: each
+  automation run is a Copilot cloud agent session started by a GitHub event.
 * **GitHub Agentic Workflows (gh-aw)** runs the optional hve-core `/review` workflow.
 * **APM (Agent Package Manager)** links reusable skills and agents from upstream repos with
   pinned revisions.
@@ -18,29 +18,43 @@ Nothing runs on your machine and nothing in `backend/` or `frontend/` is used. T
 the original local app and are left untouched as the legacy implementation.
 
 > [!IMPORTANT]
-> This is an experiment. Read [GAPS.md](GAPS.md) before relying on it. Two steps still need a
-> person in the loop: starting a Copilot session and waking Copilot for fixes.
+> This is an experiment. Read [GAPS.md](GAPS.md) before relying on it. One step still needs a
+> person: approving CI runs that GitHub holds for agent-pushed commits.
 
 ## Architecture
+
+Stages never call, assign or `@mention` each other. Each stage changes GitHub state (a label, a
+PR, a review), and that event is the next stage's trigger. GitHub is the bus and the only memory.
 
 ```mermaid
 flowchart LR
   BRD["BRD issue (sf:brd)<br/>+ docs/BRD.md"] -- "label sf:plan" --> P[sf-planner]
-  P -- "sf:task issues<br/>(sub-issues, deps)" --> D[sf-dispatcher]
-  D -- "assign Copilot<br/>(WIP 2)" --> CA[Copilot cloud agent]
-  CA -- "draft PR" --> S[sf-pr-shepherd]
-  S -- "ready, request review,<br/>@copilot fixes (max 3)" --> CA
+  P -- "sf:task sub-issues opened" --> D[sf-dispatcher]
+  D -- "task label sf:in-progress<br/>(WIP 2, deps merged)" --> I[sf-implementer]
+  I -- "PR opened, label sf:review" --> RV[sf-reviewer]
+  RV -- "review submitted<br/>(verdict marker)" --> S[sf-pr-shepherd]
+  S -- "PR label sf:fix + findings<br/>(max 3)" --> I
   S -- "gated squash merge" --> M[(main)]
-  M -- "issue closed" --> D
+  M -- "PR merged / issue closed" --> D
   R[sf-status-reporter] -. "daily" .-> ST["Status issue (sf:status)"]
 ```
 
-| Automation | Prompt | Triggers | Job |
+| Automation | Prompt | Started by | Hands off by |
 | --- | --- | --- | --- |
-| `sf-planner` | [planner.md](prompts/planner.md) | issue labeled `sf:plan`, manual | Splits the BRD into self-contained `sf:task` sub-issues with acceptance criteria and dependencies |
-| `sf-dispatcher` | [dispatcher.md](prompts/dispatcher.md) | issue labeled/closed, PR merged, hourly, manual | Promotes tasks whose dependencies are done to `sf:ready` and assigns Copilot up to the WIP limit |
-| `sf-pr-shepherd` | [shepherd.md](prompts/shepherd.md) | PR ready/synchronize/merge conflict, review requested/submitted, CI failed, hourly, manual | Marks drafts ready, releases held CI runs, requests Copilot review, routes findings back with `@copilot`, merges when gates pass |
-| `sf-status-reporter` | [reporter.md](prompts/reporter.md) | daily, manual | Rewrites the `sf:status` issue with a pipeline summary |
+| `sf-planner` | [planner.md](prompts/planner.md) | issue labelled `sf:plan` | creating `sf:task` sub-issues with acceptance criteria and dependencies |
+| `sf-dispatcher` | [dispatcher.md](prompts/dispatcher.md) | task opened or closed, PR merged, hourly | moving tasks whose dependencies merged from `sf:ready` to `sf:in-progress`, up to WIP 2 |
+| `sf-implementer` | [implementer.md](prompts/implementer.md) | task labelled `sf:in-progress`; PR labelled `sf:fix` | pushing code (`report_progress`), opening the PR, labelling it `sf:review` |
+| `sf-reviewer` | [reviewer.md](prompts/reviewer.md) | PR labelled `sf:review` | submitting a review with inline findings and a verdict marker (hve-core `code-review` skill) |
+| `sf-pr-shepherd` | [shepherd.md](prompts/shepherd.md) | review submitted, CI failed, merge conflict, hourly | labelling `sf:fix` with a findings comment (max 3 rounds), or squash-merging when gates pass |
+| `sf-status-reporter` | [reporter.md](prompts/reporter.md) | daily | rewriting the `sf:status` issue |
+
+Triggers that fire on another automation's events set `allow_copilot_triggers`. Every stage is
+idempotent, so duplicate or replayed events are harmless.
+
+An earlier version assigned issues to Copilot and posted `@copilot` fix requests from inside an
+automation. GitHub doesn't start a Copilot session when another agent session assigns or mentions
+it (the assignment fails with a misleading "repository ruleset violation" error). Starting each
+stage from an event avoids that and keeps every handoff visible on the issue or PR timeline.
 
 Every prompt is prefixed with [_conventions.md](prompts/_conventions.md), which defines the label
 state machine, hidden markers, policy constants (WIP 2, remediation cap 3) and hard rules.
@@ -49,12 +63,14 @@ state machine, hidden markers, policy constants (WIP 2, remediation cap 3) and h
 
 `sf:brd` → `sf:plan` → `sf:planned` on the BRD issue. Each `sf:task` issue moves through
 Todo (no status label) → `sf:ready` → `sf:in-progress` → `sf:in-review` → `sf:done`, with
-`sf:blocked` whenever a person must act. Labels stand in for the original Projects v2 Status field
+`sf:blocked` whenever a person must act. Factory PRs carry `sf:pr`, plus `sf:review` or `sf:fix`
+while the reviewer or implementer owns them. Labels stand in for the original Projects v2 Status field
 because automations have no Projects v2 tool.
 
 ## Install
 
-Prerequisites: a **private or internal** repository (cloud automations don't run on public repos),
+Prerequisites: a **private or internal** repository (making a repository public turns its
+automations off: the configuration reports `automations_enabled: false` and the API returns 404),
 a Copilot plan with cloud agent and automations enabled, and `gh` authenticated as the account the
 automations should act as and bill.
 

@@ -14,13 +14,18 @@ if present, and any `.github/instructions/*.instructions.md` that match the file
 2. Read `docs/BRD.md`, the repository README and the existing code you need. Implement exactly the
    task's scope and acceptance criteria. Add or update tests. Run the project's build and tests in
    your environment when a toolchain is available; do not claim results you did not see.
-3. Commit and push with `report_progress`. Then open a non-draft PR into `main` with
-   `create_pull_request`. Body: what changed, how it was tested (with the commands and outcomes you
-   actually observed), and the line `Closes #<n>`.
-4. Label the PR `sf:pr` and `sf:review` (the reviewer starts on `sf:review`). Replace the task's
-   `sf:in-progress` with `sf:in-review`.
-5. If you cannot finish (missing toolchain, ambiguous requirement, push refused), comment the exact
-   reason on the issue with `<!-- sf:blocked reason=implement-failed -->`, set `sf:blocked`, stop.
+3. Commit and push with `report_progress`. If that already opened a PR for your branch, use it;
+   otherwise open one into `main` with `create_pull_request`. The PR body must contain: what
+   changed, how it was tested (commands and outcomes you actually observed), and the line
+   `Closes #<n>` (update the body with `update_pull_request_body` if it is missing).
+4. If the PR is a draft, mark it ready with `update_pull_request_draft_state`. Label the PR `sf:pr`
+   and `sf:review` (the reviewer starts on `sf:review`); if labelling fails because the PR is not
+   visible yet, wait briefly and retry up to 3 times. Replace the task's `sf:in-progress` with
+   `sf:in-review`.
+5. Block only if the code itself cannot be finished (missing toolchain, ambiguous requirement,
+   push refused): comment the exact reason on the issue with
+   `<!-- sf:blocked reason=implement-failed -->`, set `sf:blocked`, stop. Held or pending CI is not
+   a reason to block; the shepherd handles CI.
 
 ### Fix mode (PR labelled `sf:fix`)
 

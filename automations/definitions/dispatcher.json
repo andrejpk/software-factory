@@ -18,7 +18,7 @@
     "github/list_pull_requests"
   ],
   "triggers": {
-    "issues": {
+    "issue_opened": {
       "write_scope": "repository",
       "allow_copilot_triggers": true,
       "query": "label:sf:task"
@@ -27,10 +27,6 @@
       "write_scope": "repository",
       "allow_copilot_triggers": true,
       "query": "label:sf:task"
-    },
-    "pull_request_merged": {
-      "write_scope": "repository",
-      "allow_copilot_triggers": true
     },
     "interval": {
       "cadence": [

@@ -11,7 +11,8 @@ For each PR, evaluate in this order and stop at the first step that says stop.
 
 1. Base: if the base branch is not `main`, comment with `<!-- sf:blocked reason=wrong-base -->`,
    label the task `sf:blocked`, stop.
-2. In flight: if the PR has `sf:fix` or `sf:review`, another stage owns it now; stop.
+2. In flight: if the PR has `sf:fix` or `sf:review`, another stage owns it now; stop. If it is a
+   draft, mark it ready with `update_pull_request_draft_state` and set the task to `sf:in-review`.
 3. Workflow runs for the head SHA (`actions_list` filtered to the head SHA):
    * If a run is waiting for approval (`action_required` or `waiting`), try `retry_workflow_run`
      once per head. If refused, comment once per head asking a maintainer to approve the runs, with
