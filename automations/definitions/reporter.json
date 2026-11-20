@@ -1,0 +1,32 @@
+{
+  "name": "sf-status-reporter",
+  "description": "Maintains the customer-facing sf:status issue.",
+  "type": "personal",
+  "prompt_files": [
+    "_conventions.md",
+    "reporter.md"
+  ],
+  "run_limit_credits": 30,
+  "daily_limit_credits": 30,
+  "tools": [
+    "github/issue_read",
+    "github/list_issues",
+    "github/search_issues",
+    "github/update_issue_labels",
+    "github/add_issue_comment",
+    "github/create_issue",
+    "github/update_issue_body",
+    "github/pull_request_read",
+    "github/list_pull_requests",
+    "github/search_pull_requests",
+    "github/actions_list"
+  ],
+  "triggers": {
+    "interval": {
+      "cadence": [
+        "daily"
+      ],
+      "hour_utc": 13
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "sf-planner",
+  "description": "Turns an sf:brd issue labelled sf:plan into self-contained sf:task sub-issues with dependencies.",
+  "type": "personal",
+  "prompt_files": [
+    "_conventions.md",
+    "planner.md"
+  ],
+  "run_limit_credits": 30,
+  "daily_limit_credits": 60,
+  "tools": [
+    "github/issue_read",
+    "github/list_issues",
+    "github/search_issues",
+    "github/update_issue_labels",
+    "github/add_issue_comment",
+    "github/create_issue",
+    "github/update_issue_body",
+    "github/add_sub_issue",
+    "github/get_file_contents",
+    "github/search_code"
+  ],
+  "triggers": {
+    "issue_labeled": {
+      "labels": [
+        "sf:plan"
+      ],
+      "query": "label:sf:brd",
+      "write_scope": "repository"
+    }
+  }
+}

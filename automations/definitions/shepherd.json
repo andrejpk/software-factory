@@ -1,0 +1,67 @@
+{
+  "name": "sf-pr-shepherd",
+  "description": "Drives Copilot PRs: ready for review, Copilot review, @copilot remediation (max 3), gated squash merge.",
+  "type": "personal",
+  "prompt_files": [
+    "_conventions.md",
+    "shepherd.md"
+  ],
+  "run_limit_credits": 30,
+  "daily_limit_credits": 100,
+  "tools": [
+    "github/issue_read",
+    "github/list_issues",
+    "github/search_issues",
+    "github/update_issue_labels",
+    "github/add_issue_comment",
+    "github/pull_request_read",
+    "github/list_pull_requests",
+    "github/search_pull_requests",
+    "github/update_pull_request_draft_state",
+    "github/request_pull_request_reviewers",
+    "github/merge_pull_request",
+    "github/actions_list",
+    "github/actions_get",
+    "github/get_job_logs",
+    "retry_workflow_run",
+    "github/get_file_contents"
+  ],
+  "triggers": {
+    "pull_request_review_requested": {
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
+    },
+    "pull_request_review_submitted": {
+      "states": [
+        "commented",
+        "approved",
+        "changes_requested"
+      ],
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
+    },
+    "pull_request_ready_for_review": {
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
+    },
+    "pull_request_merge_conflict": {
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
+    },
+    "workflow_run": {
+      "workflows": [
+        "CI"
+      ],
+      "conclusions": [
+        "failure"
+      ],
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
+    },
+    "interval": {
+      "cadence": [
+        "hourly"
+      ]
+    }
+  }
+}

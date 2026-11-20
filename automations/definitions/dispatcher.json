@@ -1,0 +1,45 @@
+{
+  "name": "sf-dispatcher",
+  "description": "Promotes tasks whose dependencies merged and assigns ready tasks to Copilot, WIP limit 2.",
+  "type": "personal",
+  "prompt_files": [
+    "_conventions.md",
+    "dispatcher.md"
+  ],
+  "run_limit_credits": 30,
+  "daily_limit_credits": 60,
+  "tools": [
+    "github/issue_read",
+    "github/list_issues",
+    "github/search_issues",
+    "github/update_issue_labels",
+    "github/add_issue_comment",
+    "github/update_issue_assignees",
+    "github/search_pull_requests",
+    "github/list_pull_requests"
+  ],
+  "triggers": {
+    "issue_labeled": {
+      "labels": [
+        "sf:ready"
+      ],
+      "query": "label:sf:task",
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
+    },
+    "issue_closed": {
+      "query": "label:sf:task",
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
+    },
+    "pull_request_merged": {
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
+    },
+    "interval": {
+      "cadence": [
+        "hourly"
+      ]
+    }
+  }
+}
