@@ -12,7 +12,9 @@ implementer automation starts on it.
    (remove the other status labels). An open task labelled `sf:done` was merged without a closing
    link: close it with `update_issue_state` and do not re-queue it.
 3. Promote: for each open `sf:task` issue that has no status label, read its `## Dependencies`
-   section. If every listed dependency issue is closed, add `sf:ready`.
+   section. If every listed dependency issue is closed, add `sf:ready`. When you promote an issue
+   that also carries `sf:backlog` (a person promoted a triaged item by adding `sf:task`), remove
+   `sf:backlog`.
 4. Count in-flight tasks: open `sf:task` issues labelled `sf:in-progress` or `sf:in-review`.
    Free slots = 2 minus that count. If there are no free slots, stop.
 5. Dispatch: take `sf:ready` issues in ascending issue-number order, up to the free slots. For each,
@@ -22,6 +24,6 @@ implementer automation starts on it.
    Stalled work: an `sf:in-progress` task with no linked open PR whose label is more than 2 hours
    old and that has no `sf:blocked` comment gets one comment with
    `<!-- sf:blocked reason=implementer-stalled -->` and `sf:blocked`.
-6. Completion: for each open `sf:brd` issue labelled `sf:planned`, if all of its `sf:task` sub-issues
+6. Completion: for each open `sf:brd` or `sf:feature` issue labelled `sf:planned`, if all of its `sf:task` sub-issues
    are closed and it has no comment containing `<!-- sf:delivered -->`, comment
    "All tasks are merged into main. <!-- sf:delivered -->". Do not close the BRD issue.

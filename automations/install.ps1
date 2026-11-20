@@ -50,6 +50,8 @@ if (-not $SkipLabels) {
         'sf:blocked' = 'b60205'; 'sf:done' = '2ea44f'; 'sf:status' = 'bfdadc'
         'sf:pr' = '6f42c1'; 'sf:review' = '0366d6'; 'sf:fix' = 'e99695'
                 'sf:held-ci' = 'ff7619'
+        'sf:triage' = 'f9d0c4'; 'sf:triaged' = 'fef2c0'; 'sf:backlog' = 'ededed'
+        'sf:bug' = 'd73a4a'; 'sf:enhancement' = 'a2eeef'; 'sf:feature' = '7057ff'
     }
     foreach ($name in $labels.Keys) {
         gh label create $name --color $labels[$name] --repo $Repo --force | Out-Null

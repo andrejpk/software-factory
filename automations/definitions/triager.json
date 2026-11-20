@@ -1,0 +1,30 @@
+{
+  "name": "sf-triager",
+  "description": "Triages a product-feedback issue labelled sf:triage into sf:backlog bugs, enhancements and features (epics). Never starts work.",
+  "type": "personal",
+  "prompt_files": [
+    "_conventions.md",
+    "triager.md"
+  ],
+  "run_limit_credits": 30,
+  "daily_limit_credits": 60,
+  "tools": [
+    "github/issue_read",
+    "github/list_issues",
+    "github/search_issues",
+    "github/update_issue_labels",
+    "github/add_issue_comment",
+    "github/create_issue",
+    "github/add_sub_issue",
+    "github/get_file_contents",
+    "github/search_code"
+  ],
+  "triggers": {
+    "issue_labeled": {
+      "labels": [
+        "sf:triage"
+      ],
+      "write_scope": "repository"
+    }
+  }
+}

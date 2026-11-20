@@ -18,6 +18,10 @@ Labels form the state machine:
   `sf:held-ci` means CI on the head is waiting for a human to approve it (set and cleared by the
   shepherd).
 * `sf:status` marks the single status-report issue.
+* Triage: `sf:triage` on a feedback issue asks the triager to file it; the triager swaps it for
+  `sf:triaged`. Triaged items carry `sf:backlog` plus one kind label: `sf:bug`, `sf:enhancement` or
+  `sf:feature`. A person promotes a bug or enhancement by adding `sf:task`, and a feature by
+  adding `sf:plan`.
 
 Orchestration is by GitHub state only. Stages never talk to each other: no `@copilot` or
 `@mention` requests, no assigning Copilot or other agents, no reviewer requests to bots, and no
@@ -27,6 +31,7 @@ trigger fires on that event. Every stage is idempotent, so a duplicate trigger i
 | Stage | Started by | Hands off by |
 | --- | --- | --- |
 | planner | issue labelled `sf:plan` | creating `sf:task` sub-issues |
+| triager | issue labelled `sf:triage` | creating `sf:backlog` sub-issues (never `sf:task`) |
 | dispatcher | task opened or closed, PR merged, hourly | task `sf:ready` → `sf:in-progress` |
 | implementer | task labelled `sf:in-progress`; PR labelled `sf:fix` | PR labelled `sf:review` |
 | reviewer | PR labelled `sf:review` | submitting a review |

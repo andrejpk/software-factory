@@ -25,7 +25,6 @@
       "labels": [
         "sf:plan"
       ],
-      "query": "label:sf:brd",
       "write_scope": "repository"
     }
   }

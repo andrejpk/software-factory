@@ -41,6 +41,7 @@ tasks #3–#7 with dependency lists.
 | Fix | shepherd posts findings + `sf:fix` → implementer fix mode pushes to the PR head and relabels `sf:review` | PR #10: fix pushed 18:13, clean re-review 18:17 | No |
 | Release held CI | — | Agent pushes produce `action_required` runs. `retry_workflow_run` returns 409. `gh run rerun` as a user works | **Yes** |
 | Stand-alone issue | Person opens an issue labelled `sf:task` with no dependencies → dispatcher → implementer → reviewer → shepherd | [#12](https://github.com/andrejpk/sf-gh-tier/issues/12) → [PR #13](https://github.com/andrejpk/sf-gh-tier/pull/13) merged; the shepherd added the missing `Closes #12` | Held CI only |
+| Feedback triage | Person labels a feedback issue `sf:triage` → triager files `sf:backlog` sub-issues (bug, enhancement or feature) and posts product questions; a person promotes with `sf:task` or `sf:plan` | [#15](https://github.com/andrejpk/sf-gh-tier/issues/15) → #16, #17, #18 (enhancements); the early-end/timer item came back as questions, not a guessed issue | No (triage); yes (promotion) |
 
 Problems found and fixed in the prompts during the run:
 

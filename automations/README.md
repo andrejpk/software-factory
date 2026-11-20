@@ -41,7 +41,8 @@ flowchart LR
 
 | Automation | Prompt | Started by | Hands off by |
 | --- | --- | --- | --- |
-| `sf-planner` | [planner.md](prompts/planner.md) | issue labelled `sf:plan` | creating `sf:task` sub-issues with acceptance criteria and dependencies |
+| `sf-planner` | [planner.md](prompts/planner.md) | issue labelled `sf:plan` (`sf:brd` or `sf:feature`) | creating `sf:task` sub-issues with acceptance criteria and dependencies |
+| `sf-triager` | [triager.md](prompts/triager.md) | issue labelled `sf:triage` | filing `sf:backlog` bug, enhancement and feature sub-issues |
 | `sf-dispatcher` | [dispatcher.md](prompts/dispatcher.md) | task opened or closed, PR merged, hourly | moving tasks whose dependencies merged from `sf:ready` to `sf:in-progress`, up to WIP 2 |
 | `sf-implementer` | [implementer.md](prompts/implementer.md) | task labelled `sf:in-progress`; PR labelled `sf:fix` | pushing code (`report_progress`), opening the PR, labelling it `sf:review` |
 | `sf-reviewer` | [reviewer.md](prompts/reviewer.md) | PR labelled `sf:review` | submitting a review with inline findings and a verdict marker (hve-core `code-review` skill) |
@@ -88,6 +89,22 @@ scope is wider than that package: BRD → features → tasks, with gates and a d
 | Child messages its lead (`t3_thread_send`) | Not used. The lead wakes on sub-issue closed, PR review submitted, and person comments on the parent | By design |
 | Lead reviews child PRs against the plan | Reviewer also reads the parent's plan comment | Planned |
 | Pinned "Agent work" dashboard issue | Reporter's status issue, then Mission Control | Partial |
+
+### Feedback triage → backlog
+
+Raw product feedback goes in one issue. Label it `sf:triage` and `sf-triager` files each item as a
+sub-issue labelled `sf:backlog` plus a kind: `sf:bug` or `sf:enhancement` (written as a ready task
+brief) or `sf:feature` (an epic written as a mini-BRD). Product questions go in a
+`<!-- sf:triage-report -->` comment instead. The triager never starts work. A person promotes items
+with one label write:
+
+| Kind | Promote with | What happens next |
+| --- | --- | --- |
+| `sf:bug`, `sf:enhancement` | add `sf:task` | dispatcher (`issue_labeled` trigger) queues it as a stand-alone task |
+| `sf:feature` | add `sf:plan` | planner breaks it into `sf:task` sub-issues; dispatcher marks it `sf:delivered` when all merge |
+
+This is the lightweight version of the feature-lead row above: a feature is planned once, and
+there's no lead session that keeps context across its tasks.
 | Hill-climb lead | Out of scope for now | — |
 
 ## Install

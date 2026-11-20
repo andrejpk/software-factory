@@ -30,6 +30,12 @@
       "allow_copilot_triggers": true,
       "query": "label:sf:task"
     },
+    "issue_labeled": {
+      "labels": [
+        "sf:task"
+      ],
+      "write_scope": "repository"
+    },
     "interval": {
       "cadence": [
         "hourly"
