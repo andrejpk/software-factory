@@ -1,0 +1,545 @@
+lockfile_version: '1'
+apm_version: 0.35.1
+dependencies:
+- repo_url: andrejpk/andrej-agent-kit
+  name: gh-orchestrator
+  host: github.com
+  resolved_commit: 7c36cb74fd04530312275271315d84256bf7ddc1
+  resolved_ref: main
+  version: 0.2.0
+  virtual_path: plugins/gh-orchestrator
+  is_virtual: true
+  package_type: marketplace_plugin
+  deployed_files:
+  - .agents/skills/issue-intake
+  - .agents/skills/issue-intake/SKILL.md
+  - .agents/skills/orchestrate
+  - .agents/skills/orchestrate/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/issue-intake/SKILL.md: sha256:49b9c9f7181d95b0e3a4724ffd9a701891870b38f6713787b6abe91a086a7d7f
+    .agents/skills/orchestrate/SKILL.md: sha256:d81c0bca642588dfd4ae1a4c9b592bf85c70bd62674677b8a6c4b99e3870ad66
+  content_hash: sha256:79b05c53f18ca14a26f540eca21132c5ac8f3ee95a5414579dab030a1c540bcb
+  skill_subset:
+  - issue-intake
+  - orchestrate
+- repo_url: microsoft/hve-core
+  name: hve-core-brd-builder
+  host: github.com
+  resolved_commit: e13fbf9cdd3f93eacdfbb3c3ea0631c3cbe79e83
+  resolved_ref: main
+  version: 1.0.0
+  virtual_path: .github/agents/project-planning/brd-builder.agent.md
+  is_virtual: true
+  deployed_files:
+  - .github/agents/brd-builder.agent.md
+  deployed_file_hashes:
+    .github/agents/brd-builder.agent.md: sha256:cb18daf0b0c243f2ef108a0e12a7d5b0bca71224d46c686158997f2d566f3ddf
+  content_hash: sha256:d14584005a4145932e8c1bd65a97fff2da86227756976095ea9494b30f9e51f3
+- repo_url: microsoft/hve-core
+  name: code-review
+  host: github.com
+  resolved_commit: e13fbf9cdd3f93eacdfbb3c3ea0631c3cbe79e83
+  resolved_ref: main
+  version: unknown
+  virtual_path: .github/skills/coding-standards/code-review
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/code-review
+  - .agents/skills/code-review/SECURITY.md
+  - .agents/skills/code-review/SKILL.md
+  - .agents/skills/code-review/references/accessibility.md
+  - .agents/skills/code-review/references/context.md
+  - .agents/skills/code-review/references/delivery.md
+  - .agents/skills/code-review/references/functional.md
+  - .agents/skills/code-review/references/integrations.md
+  - .agents/skills/code-review/references/investigation.md
+  - .agents/skills/code-review/references/readiness.md
+  - .agents/skills/code-review/references/review-contract.md
+  - .agents/skills/code-review/references/security.md
+  - .agents/skills/code-review/references/specialist.md
+  - .agents/skills/code-review/references/standards.md
+  - .agents/skills/code-review/scripts/lib/model.mjs
+  - .agents/skills/code-review/scripts/lib/operations.mjs
+  - .agents/skills/code-review/scripts/lib/snapshot.mjs
+  - .agents/skills/code-review/scripts/lib/storage.mjs
+  - .agents/skills/code-review/scripts/review.mjs
+  - .agents/skills/code-review/templates/review.md
+  - .agents/skills/code-review/tests/review-state.test.mjs
+  - .agents/skills/code-review/tests/snapshot.test.mjs
+  deployed_file_hashes:
+    .agents/skills/code-review/SECURITY.md: sha256:729291e74d777542c6e69c4effdced98fb0fda25c19e4a77069d2675c6cc5e9f
+    .agents/skills/code-review/SKILL.md: sha256:58cbcc44f4094cca662b07a93f0cac3c0760c0b6aa837e941379bd1213ea26a0
+    .agents/skills/code-review/references/accessibility.md: sha256:b1a6299750c1cc96ef3ec753803544a4a8e1dc9f41eb6191395f09426eb9009d
+    .agents/skills/code-review/references/context.md: sha256:9ab2e1af98c5eaf564ade1efcd50606ec878c9c28edab30da3b303405d28d528
+    .agents/skills/code-review/references/delivery.md: sha256:aff2df490e91103fca1d95037a20b5c154f9c34588150b671d65c0f2e9fd9ddd
+    .agents/skills/code-review/references/functional.md: sha256:04102dc7fe542b15979b7e4436cfc351fb2678b6599b1f370cddb21e0be84dcc
+    .agents/skills/code-review/references/integrations.md: sha256:0cdac6e7f0ff0179f5ea7baf7846937f0b9a08a7ccc2560e8e01b364ce6bc3b1
+    .agents/skills/code-review/references/investigation.md: sha256:8c31c32292cf3f6ff4f278745dc4e0364bb4162ae2a102789fc774b798dba2fe
+    .agents/skills/code-review/references/readiness.md: sha256:8b0286814318d93e27c5f948cc6d3465e95e0360cd14c2ce19f24055d2e64098
+    .agents/skills/code-review/references/review-contract.md: sha256:5769829f43e1b95b3ed270e07ba38256b3c4bd94e632b24d7b3da585441a7ebc
+    .agents/skills/code-review/references/security.md: sha256:f0c4a3f5a3a080956542a29c9a5598869a04cdd09a75a6ad3d256956c7ff0b6c
+    .agents/skills/code-review/references/specialist.md: sha256:9a6e9a4ce880b2eca6d29eafe5f0a18100caaa41c121721c85699f0e14d2f3be
+    .agents/skills/code-review/references/standards.md: sha256:7531c42e02d6cdd6942dbbceaecf850a35553471cb757cf2f5bc71b9655fc928
+    .agents/skills/code-review/scripts/lib/model.mjs: sha256:b6809643a372ae4e14fc8a9ad88914cd7ac0bc85ae8456e66c50c69afd0b1653
+    .agents/skills/code-review/scripts/lib/operations.mjs: sha256:e34d2a7262e49625ef738f24302e66b415f9efec2e5b5d96f75ce45b3558df01
+    .agents/skills/code-review/scripts/lib/snapshot.mjs: sha256:494c23961387aacc294bc348fcee3d2c45f75ac9eef31fda7bf5eaae86b7e26e
+    .agents/skills/code-review/scripts/lib/storage.mjs: sha256:f7de0f28edee032a0ee286861a4c77b4b302e610ea7dd445aea45666e67f235c
+    .agents/skills/code-review/scripts/review.mjs: sha256:8d693c6e702728ed8c55af2d7e74e1c4017a92b2db1c1f878c529ecfe16dea39
+    .agents/skills/code-review/templates/review.md: sha256:257827a0fd7d0bcdb9a5c908b60173b784a4bea56fedef59821777422ff122ea
+    .agents/skills/code-review/tests/review-state.test.mjs: sha256:ef56c09bb700e3143a82ecec76b456e3b4f2a2232b01fc530314b70f3d1baf62
+    .agents/skills/code-review/tests/snapshot.test.mjs: sha256:2b1f5a775c38d476a41a03b49b25e036a52410393d968807eec24fb2b153653c
+  content_hash: sha256:cf84d5c6b08ad55e7ba442f50edff9d89607e3ac51b42d9ea0df231c9e6bbbb8
+- repo_url: microsoft/hve-core
+  name: backlog-management
+  host: github.com
+  resolved_commit: e13fbf9cdd3f93eacdfbb3c3ea0631c3cbe79e83
+  resolved_ref: main
+  version: unknown
+  virtual_path: .github/skills/project-planning/backlog-management
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/backlog-management
+  - .agents/skills/backlog-management/SKILL.md
+  - .agents/skills/backlog-management/references/ado-build-info.md
+  - .agents/skills/backlog-management/references/ado-pull-request.md
+  - .agents/skills/backlog-management/references/ado.md
+  - .agents/skills/backlog-management/references/community-interaction.md
+  - .agents/skills/backlog-management/references/github.md
+  - .agents/skills/backlog-management/references/jira.md
+  - .agents/skills/backlog-management/references/sprint-planning.md
+  - .agents/skills/backlog-management/references/story-quality.md
+  - .agents/skills/backlog-management/references/task-planning.md
+  - .agents/skills/backlog-management/references/workflows.md
+  deployed_file_hashes:
+    .agents/skills/backlog-management/SKILL.md: sha256:3c54f76417c1612f15e484b306131e3153fb6fb8d54ab44c4d8a68dfceaf4c1a
+    .agents/skills/backlog-management/references/ado-build-info.md: sha256:e04d78561c4bccd1f2dd3c33f17b05379d76812970e1a5d7ffd06e00f9645114
+    .agents/skills/backlog-management/references/ado-pull-request.md: sha256:7adc488d0c95c4903a0e9b4cc827f4b3b86fd4a3d21e032c445e0b7cc3359064
+    .agents/skills/backlog-management/references/ado.md: sha256:9d951fb934c91cc8b7e7835a32ed096ae1e4c10b49f4cda7421ecedc9d6f717a
+    .agents/skills/backlog-management/references/community-interaction.md: sha256:0fc7dce4f1e170e31e39909b7124a42540a16ecad8dfbab2e94fbebb32c2738f
+    .agents/skills/backlog-management/references/github.md: sha256:7c5f3faa6e6a62a65b0dc2fb31ddcfb7b8f4e6746fbe857d296753cf37cb2c6b
+    .agents/skills/backlog-management/references/jira.md: sha256:25e7570389547a6ca18edfe9e5a3eb5bfae9007d56674e5dff38dc3db1188c69
+    .agents/skills/backlog-management/references/sprint-planning.md: sha256:aed0060e4480105f4fb96be8b0b2a814630c157bf1faad2f622e7f7a2f15cce3
+    .agents/skills/backlog-management/references/story-quality.md: sha256:02f5930e747ca365416e6131260a39e55f978e586511707ed8e0845493b2b84b
+    .agents/skills/backlog-management/references/task-planning.md: sha256:f1ae9829f74b49cb1bcbe196a76b7038892e243258913b7ad57f3bc0f679822e
+    .agents/skills/backlog-management/references/workflows.md: sha256:03103a72d8a01ed0a610590c7e8c3bd3e8aaf0ef76e493790bb579421d8d18d6
+  content_hash: sha256:4e78c6ea8414a4c13ce8a5c18020c643e62c808cb21b30a617793f498d1aa68d
+- repo_url: microsoft/hve-core
+  name: backlog-plan
+  host: github.com
+  resolved_commit: e13fbf9cdd3f93eacdfbb3c3ea0631c3cbe79e83
+  resolved_ref: main
+  version: unknown
+  virtual_path: .github/skills/project-planning/backlog-plan
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/backlog-plan
+  - .agents/skills/backlog-plan/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/backlog-plan/SKILL.md: sha256:2a0db007564ccc100f1f383bb9af4429308e425c135997bd2bf901b3760139c2
+  content_hash: sha256:bf6d4221967d2042c372f66570fe8edf9ac5d55f50315211ae8d69da9d483cfa
+- repo_url: microsoft/hve-core
+  name: untrusted-content-boundary
+  host: github.com
+  resolved_commit: e13fbf9cdd3f93eacdfbb3c3ea0631c3cbe79e83
+  resolved_ref: main
+  version: unknown
+  virtual_path: .github/skills/shared/untrusted-content-boundary
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/untrusted-content-boundary
+  - .agents/skills/untrusted-content-boundary/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/untrusted-content-boundary/SKILL.md: sha256:cee709c0d6b331d91621be67b293b456d820a3bce273de3ea87c946f0a47224f
+  content_hash: sha256:84de2398998e42f920cd4681cfe40b133f46ba546ed20345ef29365e65a6079b
+deployments:
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-management
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-management
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-management
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-management/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-management
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-management
+  content_hash: sha256:3c54f76417c1612f15e484b306131e3153fb6fb8d54ab44c4d8a68dfceaf4c1a
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-management/references/ado-build-info.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-management
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-management
+  content_hash: sha256:e04d78561c4bccd1f2dd3c33f17b05379d76812970e1a5d7ffd06e00f9645114
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-management/references/ado-pull-request.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-management
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-management
+  content_hash: sha256:7adc488d0c95c4903a0e9b4cc827f4b3b86fd4a3d21e032c445e0b7cc3359064
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-management/references/ado.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-management
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-management
+  content_hash: sha256:9d951fb934c91cc8b7e7835a32ed096ae1e4c10b49f4cda7421ecedc9d6f717a
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-management/references/community-interaction.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-management
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-management
+  content_hash: sha256:0fc7dce4f1e170e31e39909b7124a42540a16ecad8dfbab2e94fbebb32c2738f
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-management/references/github.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-management
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-management
+  content_hash: sha256:7c5f3faa6e6a62a65b0dc2fb31ddcfb7b8f4e6746fbe857d296753cf37cb2c6b
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-management/references/jira.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-management
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-management
+  content_hash: sha256:25e7570389547a6ca18edfe9e5a3eb5bfae9007d56674e5dff38dc3db1188c69
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-management/references/sprint-planning.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-management
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-management
+  content_hash: sha256:aed0060e4480105f4fb96be8b0b2a814630c157bf1faad2f622e7f7a2f15cce3
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-management/references/story-quality.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-management
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-management
+  content_hash: sha256:02f5930e747ca365416e6131260a39e55f978e586511707ed8e0845493b2b84b
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-management/references/task-planning.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-management
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-management
+  content_hash: sha256:f1ae9829f74b49cb1bcbe196a76b7038892e243258913b7ad57f3bc0f679822e
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-management/references/workflows.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-management
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-management
+  content_hash: sha256:03103a72d8a01ed0a610590c7e8c3bd3e8aaf0ef76e493790bb579421d8d18d6
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-plan
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-plan
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-plan
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/backlog-plan/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/project-planning/backlog-plan
+  active_owner: microsoft/hve-core/.github/skills/project-planning/backlog-plan
+  content_hash: sha256:2a0db007564ccc100f1f383bb9af4429308e425c135997bd2bf901b3760139c2
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/SECURITY.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:729291e74d777542c6e69c4effdced98fb0fda25c19e4a77069d2675c6cc5e9f
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:58cbcc44f4094cca662b07a93f0cac3c0760c0b6aa837e941379bd1213ea26a0
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/references/accessibility.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:b1a6299750c1cc96ef3ec753803544a4a8e1dc9f41eb6191395f09426eb9009d
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/references/context.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:9ab2e1af98c5eaf564ade1efcd50606ec878c9c28edab30da3b303405d28d528
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/references/delivery.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:aff2df490e91103fca1d95037a20b5c154f9c34588150b671d65c0f2e9fd9ddd
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/references/functional.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:04102dc7fe542b15979b7e4436cfc351fb2678b6599b1f370cddb21e0be84dcc
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/references/integrations.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:0cdac6e7f0ff0179f5ea7baf7846937f0b9a08a7ccc2560e8e01b364ce6bc3b1
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/references/investigation.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:8c31c32292cf3f6ff4f278745dc4e0364bb4162ae2a102789fc774b798dba2fe
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/references/readiness.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:8b0286814318d93e27c5f948cc6d3465e95e0360cd14c2ce19f24055d2e64098
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/references/review-contract.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:5769829f43e1b95b3ed270e07ba38256b3c4bd94e632b24d7b3da585441a7ebc
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/references/security.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:f0c4a3f5a3a080956542a29c9a5598869a04cdd09a75a6ad3d256956c7ff0b6c
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/references/specialist.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:9a6e9a4ce880b2eca6d29eafe5f0a18100caaa41c121721c85699f0e14d2f3be
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/references/standards.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:7531c42e02d6cdd6942dbbceaecf850a35553471cb757cf2f5bc71b9655fc928
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/scripts/lib/model.mjs
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:b6809643a372ae4e14fc8a9ad88914cd7ac0bc85ae8456e66c50c69afd0b1653
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/scripts/lib/operations.mjs
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:e34d2a7262e49625ef738f24302e66b415f9efec2e5b5d96f75ce45b3558df01
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/scripts/lib/snapshot.mjs
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:494c23961387aacc294bc348fcee3d2c45f75ac9eef31fda7bf5eaae86b7e26e
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/scripts/lib/storage.mjs
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:f7de0f28edee032a0ee286861a4c77b4b302e610ea7dd445aea45666e67f235c
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/scripts/review.mjs
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:8d693c6e702728ed8c55af2d7e74e1c4017a92b2db1c1f878c529ecfe16dea39
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/templates/review.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:257827a0fd7d0bcdb9a5c908b60173b784a4bea56fedef59821777422ff122ea
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/tests/review-state.test.mjs
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:ef56c09bb700e3143a82ecec76b456e3b4f2a2232b01fc530314b70f3d1baf62
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/code-review/tests/snapshot.test.mjs
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/coding-standards/code-review
+  active_owner: microsoft/hve-core/.github/skills/coding-standards/code-review
+  content_hash: sha256:2b1f5a775c38d476a41a03b49b25e036a52410393d968807eec24fb2b153653c
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/issue-intake
+  runtime: null
+  scope: project
+  owners:
+  - andrejpk/andrej-agent-kit/plugins/gh-orchestrator
+  active_owner: andrejpk/andrej-agent-kit/plugins/gh-orchestrator
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/issue-intake/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - andrejpk/andrej-agent-kit/plugins/gh-orchestrator
+  active_owner: andrejpk/andrej-agent-kit/plugins/gh-orchestrator
+  content_hash: sha256:49b9c9f7181d95b0e3a4724ffd9a701891870b38f6713787b6abe91a086a7d7f
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/orchestrate
+  runtime: null
+  scope: project
+  owners:
+  - andrejpk/andrej-agent-kit/plugins/gh-orchestrator
+  active_owner: andrejpk/andrej-agent-kit/plugins/gh-orchestrator
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/orchestrate/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - andrejpk/andrej-agent-kit/plugins/gh-orchestrator
+  active_owner: andrejpk/andrej-agent-kit/plugins/gh-orchestrator
+  content_hash: sha256:d81c0bca642588dfd4ae1a4c9b592bf85c70bd62674677b8a6c4b99e3870ad66
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/untrusted-content-boundary
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/shared/untrusted-content-boundary
+  active_owner: microsoft/hve-core/.github/skills/shared/untrusted-content-boundary
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/untrusted-content-boundary/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/skills/shared/untrusted-content-boundary
+  active_owner: microsoft/hve-core/.github/skills/shared/untrusted-content-boundary
+  content_hash: sha256:cee709c0d6b331d91621be67b293b456d820a3bce273de3ea87c946f0a47224f
+- kind: project-relative
+  target: copilot
+  value: .github/agents/brd-builder.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/hve-core/.github/agents/project-planning/brd-builder.agent.md
+  active_owner: microsoft/hve-core/.github/agents/project-planning/brd-builder.agent.md
+  content_hash: sha256:cb18daf0b0c243f2ef108a0e12a7d5b0bca71224d46c686158997f2d566f3ddf

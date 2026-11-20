@@ -34,9 +34,10 @@ For each PR, evaluate in this order and stop at the first step that says stop.
 6. Findings: every inline comment from that review (path:line plus text), the review body if its
    state is CHANGES_REQUESTED and it has no inline comments, failed checks from step 4, and a merge
    conflict if the PR is not mergeable because of conflicts. An "LGTM" summary never overrides an
-   inline comment. Do not judge the code yourself. If a person ran `/review` (hve-core's gh-aw
-   `pr-review` workflow) and the PR carries `needs-revision`, add that review's inline comments on
-   the head SHA as findings too.
+   inline comment. Do not judge the code yourself. If the PR's labels (from `pull_request_read`)
+   include `needs-revision` from hve-core's gh-aw `pr-review` workflow (run by `/review`), add that
+   review's inline comments on the head SHA as findings too. If the labels can't be read, skip this
+   extra check silently; it is optional and never a reason to block.
 7. Remediate: if there are findings, count your earlier `<!-- sf:remediation` markers on this PR.
    * If a marker already exists for this head SHA, stop (Copilot is working or about to).
    * If the count is 3 or more, comment the outstanding findings with

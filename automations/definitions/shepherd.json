@@ -44,6 +44,10 @@
       "write_scope": "repository",
       "allow_copilot_triggers": true
     },
+    "pull_request_synchronize": {
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
+    },
     "pull_request_merge_conflict": {
       "write_scope": "repository",
       "allow_copilot_triggers": true

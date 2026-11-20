@@ -1,0 +1,21 @@
+# Software Factory automation layer: upstream agent primitives. apm.yml tracks branches;
+# apm.lock.yaml pins the exact commits (resolved_commit). `apm install --frozen` reproduces them,
+# `apm update --yes` bumps them.
+# Generated output (.agents/skills, .github/agents, apm.lock.yaml) must not be hand-edited.
+name: sf-automation-sandbox
+version: 0.1.0
+target: copilot
+dependencies:
+  apm:
+    - microsoft/hve-core/.github/skills/shared/untrusted-content-boundary#main
+    - microsoft/hve-core/.github/skills/coding-standards/code-review#main
+    - microsoft/hve-core/.github/skills/project-planning/backlog-plan#main
+    - microsoft/hve-core/.github/skills/project-planning/backlog-management#main
+    - microsoft/hve-core/.github/agents/project-planning/brd-builder.agent.md#main
+    - git: https://github.com/andrejpk/andrej-agent-kit.git
+      path: plugins/gh-orchestrator
+      ref: main
+      skills: [orchestrate, issue-intake]
+
+
+

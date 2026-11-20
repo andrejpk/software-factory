@@ -12,6 +12,12 @@ code review findings back for fixes, and merges clean pull requests into `main`.
 
 See [SPEC.md](SPEC.md) for the full MVP specification.
 
+> [!NOTE]
+> An experimental port that runs this loop on GitHub Copilot cloud automations with no custom
+> backend lives in [automations/](automations/README.md). The `backend/` and `frontend/` app
+> described here is the original (legacy) implementation. [automations/GAPS.md](automations/GAPS.md)
+> compares the two.
+
 ## Prerequisites
 
 * Windows with Python 3.13 and Node.js 22

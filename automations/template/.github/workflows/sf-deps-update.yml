@@ -1,0 +1,65 @@
+# Software Factory: weekly refresh of linked upstream agent primitives.
+# - APM (apm.yml -> apm.lock.yaml, .agents/skills, .github/agents)
+# - gh-aw workflows that carry a `source:` field (3-way merge keeps local edits)
+# Opens (or updates) a PR so humans review upstream changes before they land.
+#
+# Secrets:
+#   SF_DEPS_TOKEN  fine-grained PAT with contents+pull-requests+workflows write on this repo
+#                  and contents read on any private sources (e.g. andrejpk/andrej-agent-kit).
+#                  GITHUB_TOKEN cannot push changes under .github/workflows, so a PAT is required
+#                  for gh-aw updates. Without it the job still reports what is outdated.
+name: sf-deps-update
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    env:
+      HAS_TOKEN: ${{ secrets.SF_DEPS_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SF_DEPS_TOKEN || github.token }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        env:
+          GH_TOKEN: ${{ secrets.SF_DEPS_TOKEN || github.token }}
+        run: |
+          pip install --quiet apm-cli
+          gh extension install github/gh-aw
+      - name: Refresh APM dependencies
+        env:
+          GITHUB_TOKEN: ${{ secrets.SF_DEPS_TOKEN || github.token }}
+        run: |
+          # apm_modules/ is gitignored; restore the locked baseline before updating.
+          apm install --frozen
+          apm update --yes
+      - name: Refresh gh-aw workflows
+        env:
+          GH_TOKEN: ${{ secrets.SF_DEPS_TOKEN || github.token }}
+        run: gh aw update
+      - name: Open PR
+        if: env.HAS_TOKEN == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SF_DEPS_TOKEN }}
+        run: |
+          git diff --quiet && { echo "No upstream changes."; exit 0; }
+          branch=sf/deps-update
+          git config user.name "sf-deps-bot"
+          git config user.email "sf-deps-bot@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add -A
+          git commit -m "chore(deps): refresh upstream agent primitives"
+          git push -f origin "$branch"
+          gh pr view "$branch" >/dev/null 2>&1 || gh pr create --head "$branch" \
+            --title "chore(deps): refresh upstream agent primitives" \
+            --body "Automated refresh via \`apm update\` and \`gh aw update\`. Review apm.lock.yaml and workflow diffs."
+      - name: Report only (no SF_DEPS_TOKEN)
+        if: env.HAS_TOKEN != 'true'
+        run: git status --short && git diff --stat
