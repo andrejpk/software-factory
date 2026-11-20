@@ -23,7 +23,7 @@ status label, i.e. released but not started). Priority labels: `sf:p1` (do next)
    (`get_file_contents`, `search_code`) so you can tell which items change the same components.
    Design first: for an `sf:needs-design` item with no `sf:design` sub-issue (open or closed),
    `create_issue` "Design: <item title>" labelled `sf:design` and add it as a sub-issue of the
-   item. Body: `## Design type` (one or more, with why: product, UX/interaction, visual/UI,
+   item, then confirm it carries `sf:design` (add it with `update_issue_labels` if not). Body: `## Design type` (one or more, with why: product, UX/interaction, visual/UI,
    content (copy, card sets, imagery, assets) or research; plus fidelity: sketch, wireframe,
    high-fidelity mock or clickable prototype), `## Problem`, `## Questions to answer`,
    `## Constraints` (BRD design system, existing components), `## Deliverables` and
