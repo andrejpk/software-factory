@@ -25,7 +25,11 @@ if present, and any `.github/instructions/*.instructions.md` that match the file
 5. Block only if the code itself cannot be finished (missing toolchain, ambiguous requirement,
    push refused): comment the exact reason on the issue with
    `<!-- sf:blocked reason=implement-failed -->`, set `sf:blocked`, stop. Held or pending CI is not
-   a reason to block; the shepherd handles CI.
+   a reason to block; the shepherd handles CI. If what's missing is assets you can't create or
+   fetch (photos, licensed media, brand files, real copy), use
+   `<!-- sf:blocked reason=needs-assets -->` instead and list exactly which assets are needed, the
+   format and size, and the repo path they belong at. The groomer turns that into a content story
+   for a person.
 
 ### Fix mode (PR labelled `sf:fix`)
 

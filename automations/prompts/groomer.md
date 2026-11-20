@@ -13,24 +13,23 @@ status label, i.e. released but not started). Priority labels: `sf:p1` (do next)
 
 1. Gather (`list_issues`, not search): open `sf:backlog` issues; open `sf:task` issues and their
    status labels; open `sf:feature` issues and their sub-issues; `docs/BRD.md` and `README.md`.
-   Skip any item labelled `sf:hold` (a person parked it) or `sf:blocked`.
+   Skip any item labelled `sf:hold` (a person parked it) or `sf:blocked`, with one exception: an
+   open `sf:task` with `sf:blocked` whose latest block comment is
+   `<!-- sf:blocked reason=needs-assets -->` goes back to the backlog. In one
+   `update_issue_labels` call, remove `sf:task`, `sf:blocked` and any status label, and add
+   `sf:backlog` and `sf:needs-design`. Step 2 then creates its design story (design type
+   **content**, listing the assets from the block comment).
 2. Understand each backlog item: read its body and skim the code it would touch
    (`get_file_contents`, `search_code`) so you can tell which items change the same components.
-   Design first: for an item labelled `sf:needs-design` that has no open or closed `sf:design`
-   sub-issue, create a design story with `create_issue`, labelled `sf:design`, titled
-   "Design: <item title>", and add it as a sub-issue of    the item. Its body: `## Design type` (pick one or more and say why: **product** (scope, user
-   flows and requirements), **UX/interaction** (flows, wireframes, interaction model), **visual/UI**
-   (look, layout, components, motion), **content** (copy, card sets, imagery), or **research**
-   (user or competitive evidence), and the fidelity expected: sketch, wireframe, high-fidelity
-   mock or clickable prototype), `## Problem` (from the
-   item and its feedback), `## Questions to answer` (layout, interaction, states, mobile and
-   desktop, accessibility), `## Constraints` (the BRD's design system and existing components),
-   `## Deliverables` (concepts or prototypes, chosen direction, annotated visuals or a prototype
-   link), and `## Done when` ("a person closes this issue with a comment recording the chosen
-   direction"). Add the design story to the item's `## Dependencies` so the item can't be released
-   before the design is done. You never do design work or assign the designer; a person assigns it.
-   When a design story is closed, copy the link to its closing comment (the chosen direction) into
-   the item's `## Context`, then remove `sf:needs-design` from the item.
+   Design first: for an `sf:needs-design` item with no `sf:design` sub-issue (open or closed),
+   `create_issue` "Design: <item title>" labelled `sf:design` and add it as a sub-issue of the
+   item. Body: `## Design type` (one or more, with why: product, UX/interaction, visual/UI,
+   content (copy, card sets, imagery, assets) or research; plus fidelity: sketch, wireframe,
+   high-fidelity mock or clickable prototype), `## Problem`, `## Questions to answer`,
+   `## Constraints` (BRD design system, existing components), `## Deliverables` and
+   `## Done when` ("a person closes this issue with a comment recording the chosen direction").
+   Add it to the item's `## Dependencies`. You never design or assign the designer. When a design
+   story closes, link its closing comment in the item's `## Context` and remove `sf:needs-design`.
 3. Sequence: decide dependencies between backlog items (and on open tasks). An item depends on
    another if it builds on that change, or if both rewrite the same component and doing them in
    parallel would cause conflicts. Write them into the item's `## Dependencies` section

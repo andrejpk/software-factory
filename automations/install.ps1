@@ -80,6 +80,7 @@ foreach ($file in $files) {
         }
     }
     $prompt = ($def.prompt_files | ForEach-Object { Get-Content "$root/prompts/$_" -Raw }) -join "`n`n"
+    if ($prompt.Length -gt 10000) { throw "$($def.name): prompt is $($prompt.Length) characters; the limit is 10,000" }
     $body = [ordered]@{
         name                           = $def.name
         prompt                         = $prompt
