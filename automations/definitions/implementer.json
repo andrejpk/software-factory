@@ -1,0 +1,45 @@
+{
+  "name": "sf-implementer",
+  "description": "Writes the code: builds a task labelled sf:in-progress into a PR, or fixes a PR labelled sf:fix.",
+  "type": "personal",
+  "prompt_files": [
+    "_conventions.md",
+    "implementer.md"
+  ],
+  "run_limit_credits": 40,
+  "daily_limit_credits": 150,
+  "tools": [
+    "github/issue_read",
+    "github/search_issues",
+    "github/update_issue_labels",
+    "github/add_issue_comment",
+    "github/pull_request_read",
+    "github/search_pull_requests",
+    "github/list_pull_requests",
+    "create_pull_request",
+    "report_progress",
+    "github/get_file_contents",
+    "github/search_code",
+    "github/list_branches",
+    "github/list_commits",
+    "github/actions_list",
+    "github/get_job_logs"
+  ],
+  "triggers": {
+    "issue_labeled": {
+      "write_scope": "repository",
+      "allow_copilot_triggers": true,
+      "labels": [
+        "sf:in-progress"
+      ],
+      "query": "label:sf:task"
+    },
+    "pull_request_labeled": {
+      "write_scope": "repository",
+      "allow_copilot_triggers": true,
+      "labels": [
+        "sf:fix"
+      ]
+    }
+  }
+}

@@ -10,27 +10,42 @@ Labels form the state machine:
   is the authoritative BRD text; otherwise the BRD issue body is.
 * `sf:plan` on a BRD issue asks the planner to create tasks. The planner swaps it for `sf:planned`.
 * `sf:task` marks an implementation task issue. Exactly one status label accompanies it:
-  `sf:ready` (dependencies merged, waiting for a Copilot slot), `sf:in-progress` (assigned to
-  Copilot), `sf:in-review` (PR ready for review), `sf:blocked` (needs a human) or `sf:done`.
+  `sf:ready` (dependencies merged, waiting for a WIP slot), `sf:in-progress` (the implementer is
+  building it), `sf:in-review` (its PR is open), `sf:blocked` (needs a human) or `sf:done`.
   A task with none of these is "Todo" (waiting on dependencies).
+* PR labels: `sf:pr` marks a factory PR. `sf:review` asks the reviewer for a review of the head.
+  `sf:fix` asks the implementer to address the findings in the newest remediation comment.
 * `sf:status` marks the single status-report issue.
+
+Orchestration is by GitHub state only. Stages never talk to each other: no `@copilot` or
+`@mention` requests, no assigning Copilot or other agents, no reviewer requests to bots, and no
+starting other automations. You hand off by setting a label or submitting a review; the next stage's
+trigger fires on that event. Every stage is idempotent, so a duplicate trigger is harmless.
+
+| Stage | Started by | Hands off by |
+| --- | --- | --- |
+| planner | issue labelled `sf:plan` | creating `sf:task` sub-issues |
+| dispatcher | task opened or closed, PR merged, hourly | task `sf:ready` → `sf:in-progress` |
+| implementer | task labelled `sf:in-progress`; PR labelled `sf:fix` | PR labelled `sf:review` |
+| reviewer | PR labelled `sf:review` | submitting a review |
+| shepherd | review submitted, CI failed, merge conflict, hourly | PR labelled `sf:fix`, or merge |
 
 Task issue bodies contain a `## Dependencies` section that lists prerequisite issues as
 `- #<number>` lines, or `- none`.
 
-Policy constants: parallel task limit (WIP) = 2. Remediation limit = 3 `@copilot` fix requests per PR.
+Policy constants: parallel task limit (WIP) = 2. Remediation limit = 3 `sf:fix` rounds per PR.
 Merges target `main` only, use squash, and pass the head SHA you evaluated.
 
 Hidden markers you write and later read back:
 
-* `<!-- sf:remediation n=<N> head=<sha> -->` in each PR comment that asks Copilot for fixes.
+* `<!-- sf:remediation n=<N> head=<sha> -->` in each PR comment that lists findings for `sf:fix`.
+* `<!-- sf:review verdict=<clean|findings> head=<sha> count=<N> -->` in each reviewer review body.
 * `<!-- sf:merge-evidence head=<sha> -->` in the comment you post just before merging.
 * `<!-- sf:blocked reason=<slug> -->` in the comment that explains a block.
 
 Hard rules:
 
-* Never write or push application code yourself. Copilot cloud agent writes code; Copilot code
-  review reviews it. You coordinate.
+* Only the implementer writes or pushes code; only the reviewer judges code. Other stages coordinate.
 * Never invent review verdicts, test results or approvals. Never dismiss or override Copilot findings.
 * Never weaken branch protection, rulesets or required checks.
 * Never put secrets or tokens in issues, comments or PRs.

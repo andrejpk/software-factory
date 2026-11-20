@@ -1,0 +1,30 @@
+{
+  "name": "sf-reviewer",
+  "description": "Reviews a factory PR labelled sf:review with hve-core's code-review skill and submits a review with a verdict marker.",
+  "type": "personal",
+  "prompt_files": [
+    "_conventions.md",
+    "reviewer.md"
+  ],
+  "run_limit_credits": 20,
+  "daily_limit_credits": 80,
+  "tools": [
+    "github/issue_read",
+    "github/pull_request_read",
+    "github/create_pull_request_review",
+    "github/add_pull_request_review_comment",
+    "github/submit_pending_pull_request_review",
+    "github/update_issue_labels",
+    "github/get_file_contents",
+    "github/search_code"
+  ],
+  "triggers": {
+    "pull_request_labeled": {
+      "write_scope": "repository",
+      "allow_copilot_triggers": true,
+      "labels": [
+        "sf:review"
+      ]
+    }
+  }
+}

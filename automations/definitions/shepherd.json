@@ -1,6 +1,6 @@
 {
   "name": "sf-pr-shepherd",
-  "description": "Drives Copilot PRs: ready for review, Copilot review, @copilot remediation (max 3), gated squash merge.",
+  "description": "Gates factory PRs: CI, reviewer verdict, sf:fix remediation hand-off (max 3), gated squash merge.",
   "type": "personal",
   "prompt_files": [
     "_conventions.md",
@@ -17,8 +17,6 @@
     "github/pull_request_read",
     "github/list_pull_requests",
     "github/search_pull_requests",
-    "github/update_pull_request_draft_state",
-    "github/request_pull_request_reviewers",
     "github/merge_pull_request",
     "github/actions_list",
     "github/actions_get",
@@ -27,24 +25,12 @@
     "github/get_file_contents"
   ],
   "triggers": {
-    "pull_request_review_requested": {
-      "write_scope": "repository",
-      "allow_copilot_triggers": true
-    },
     "pull_request_review_submitted": {
       "states": [
         "commented",
         "approved",
         "changes_requested"
       ],
-      "write_scope": "repository",
-      "allow_copilot_triggers": true
-    },
-    "pull_request_ready_for_review": {
-      "write_scope": "repository",
-      "allow_copilot_triggers": true
-    },
-    "pull_request_synchronize": {
       "write_scope": "repository",
       "allow_copilot_triggers": true
     },

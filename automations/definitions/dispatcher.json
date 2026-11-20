@@ -1,6 +1,6 @@
 {
   "name": "sf-dispatcher",
-  "description": "Promotes tasks whose dependencies merged and assigns ready tasks to Copilot, WIP limit 2.",
+  "description": "Promotes tasks whose dependencies merged and hands ready tasks to the implementer by label (sf:in-progress), WIP limit 2.",
   "type": "personal",
   "prompt_files": [
     "_conventions.md",
@@ -14,23 +14,19 @@
     "github/search_issues",
     "github/update_issue_labels",
     "github/add_issue_comment",
-    "github/update_issue_assignees",
     "github/search_pull_requests",
     "github/list_pull_requests"
   ],
   "triggers": {
-    "issue_labeled": {
-      "labels": [
-        "sf:ready"
-      ],
-      "query": "label:sf:task",
+    "issues": {
       "write_scope": "repository",
-      "allow_copilot_triggers": true
+      "allow_copilot_triggers": true,
+      "query": "label:sf:task"
     },
     "issue_closed": {
-      "query": "label:sf:task",
       "write_scope": "repository",
-      "allow_copilot_triggers": true
+      "allow_copilot_triggers": true,
+      "query": "label:sf:task"
     },
     "pull_request_merged": {
       "write_scope": "repository",
