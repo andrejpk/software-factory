@@ -60,7 +60,12 @@ Gaps that remain in v2:
 
 - **Held CI** (the one human step). There's no automation tool that approves `action_required`
   runs. Options: a gh-aw `approve-workflow-run` safe output, or relaxing the repo's Actions
-  approval setting for the agent.
+  approval setting for the agent. PR #14 (the last BRD task) had a clean review but waited about
+  80 minutes on held CI. The shepherd asked for approval in a PR comment, but a personal
+  automation acts as the user, so that comment notified nobody. The shepherd now also labels the
+  PR `sf:held-ci` (cleared once runs are released) and the reporter lists it first under "Needs a
+  human"; still no push notification. After release, BRD #1 got `sf:delivered`: all 5 BRD tasks
+  merged.
 - **No trigger on CI success.** `workflow_run` fires on failure only, so after a person
   releases CI and it passes, the shepherd waits for its hourly sweep or a manual run (PR #10).
 - **Stale task state.** The first #5 implementer task still reports `in_progress` long after

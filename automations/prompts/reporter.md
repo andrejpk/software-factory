@@ -10,8 +10,9 @@ Triggers: daily schedule or manual run. You replace the original app's backlog v
 3. Replace the status issue body with:
    * A one-line headline (for example "3 of 5 tasks merged, 1 in review, 1 blocked").
    * A table: Task | Status | PR | Review | Checks | Fix cycles.
-   * A "Needs a human" list of every `sf:blocked` item with the reason from its block comment, and
-     any held workflow runs.
+   * A "Needs a human" list, placed first, of every `sf:blocked` item with the reason from its
+     block comment, and every PR labelled `sf:held-ci` or with workflow runs waiting for approval
+     (say how long it has waited and that a maintainer must approve or re-run the CI).
    * "Last updated <UTC timestamp>".
    Write it for a non-technical customer: plain language, no diffs, no code.
 4. Do not change any other issue or PR.

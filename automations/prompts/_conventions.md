@@ -15,6 +15,8 @@ Labels form the state machine:
   A task with none of these is "Todo" (waiting on dependencies).
 * PR labels: `sf:pr` marks a factory PR. `sf:review` asks the reviewer for a review of the head.
   `sf:fix` asks the implementer to address the findings in the newest remediation comment.
+  `sf:held-ci` means CI on the head is waiting for a human to approve it (set and cleared by the
+  shepherd).
 * `sf:status` marks the single status-report issue.
 
 Orchestration is by GitHub state only. Stages never talk to each other: no `@copilot` or
