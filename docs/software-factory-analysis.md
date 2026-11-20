@@ -1,11 +1,14 @@
 # Software factories on GitHub: analysis for an internal pilot
 
-Date: 2026-11-20. Status: **draft v1**. Section 6 waits on the child session's live automation run.
+Date: 2026-11-20. Status: **draft v2**. It includes two live runs of the GitHub-native fork (§6, §6.1).
 
 ## 0. TL;DR
 
-> **Live test update (§6):** the automation-only loop worked once from start to finish, for about 8 AI credits, but a person had to step in three times. Copilot doesn't respond to automation-issued assignments or `@copilot` comments, and held CI runs can't be approved by an automation. Use **gh-aw with a user or bot PAT** for those steps, use automations for planning and status, and run the pilot in an **org** repo so rulesets enforce the gates.
-> **v2 update (§6.1):** an event-driven version that lets an automation write the code (no Copilot hand-off) merged three PRs, including a full fix-and-re-review cycle. The only remaining manual step is releasing held CI runs. Automations need a private or internal repo.
+> **Live test result (§6, §6.1):** Lucas's loop now runs on GitHub alone, with no backend.
+> - **v1** started Copilot cloud agent from automations by assigning issues and posting `@copilot` comments. It worked once, but a person had to step in three times, because Copilot ignores assignments and mentions written by another agent.
+> - **v2** refactored the loop to be **event-driven**: six automations (planner, dispatcher, implementer, reviewer, shepherd, reporter) hand off only through labels, PRs and reviews. The implementer automation writes the code itself. In the private repo sf-gh-tier, it **merged three PRs**, including a full findings → fix → clean re-review cycle, with dependency-aware dispatch at WIP 2.
+> - **One human step remains:** releasing CI runs that GitHub holds on agent pushes. Two smaller limits: no trigger on CI success (the hourly sweep covers it), and automations run only in **private or internal** repos.
+> - **For the pilot:** use an **org** repo so rulesets enforce the gates, which v2 still handles as prompt rules.
 
 - **The automations layer can replace most of the backend.** GitHub's cloud automations now trigger on nearly every event Lucas's poller watches: review submitted, ready_for_review, workflow failed, merge conflict, merged, sub-issue added, label added, and automation completed. They can also call the PR lifecycle tools that need: mark ready, request reviewers, merge, comment, sub-issues, and retry runs. With GitHub Actions and gh-aw added, **GitHub can be the backend**. Actions is the hosted compute you're already allowed to use.
 - **Three things don't move cleanly:**
@@ -14,9 +17,9 @@ Date: 2026-11-20. Status: **draft v1**. Section 6 waits on the child session's l
   3. **The customer-facing UI.** GitHub has no "factory cockpit".
 - **Copilot app Projects** are the personal cockpit and the interactive lead. Projects plus child sessions plus `send_session_message` reproduce the T3 Code thread model almost 1:1. They are per-user and local, though, so they're where *you* plan, not where *the team* runs.
 - **Factory.ai's real moat** is Mission Control and orchestrator/worker/validator roles, multiplayer sessions, cost attribution per feature, a runtime QA validator, and delegation from chat. Enterprise governance is *not* much of a moat, because GitHub is strong there.
-- **Pilot recommendation:** a "GitHub-is-the-backend" factory in a real team repo.
-  - Shared automations handle broker/dispatch/shepherd.
-  - gh-aw and Actions handle the deterministic parts.
+- **Pilot recommendation:** a "GitHub-is-the-backend" factory in a real team repo, starting from the v2 fork's `automations/`.
+  - Shared automations handle planning, dispatch, implementation, review and the shepherd, chained by labels (proven live in v2).
+  - gh-aw and Actions handle the deterministic parts: releasing held CI, Projects v2 sync, and update PRs.
   - Your gh-orchestrator skills become repo skills.
   - Humans participate through issues, labels, comments and PR approvals.
   - Each person uses the Copilot app as their own cockpit.
@@ -28,22 +31,22 @@ Date: 2026-11-20. Status: **draft v1**. Section 6 waits on the child session's l
 
 ## 1. The four systems side by side
 
-The GitHub-native column describes the fork branch [`copilot-automations-layer`](https://github.com/andrejpk/software-factory/tree/copilot-automations-layer), as it ran live in the sandbox (§6).
+The GitHub-native column describes the fork branch [`copilot-automations-layer`](https://github.com/andrejpk/software-factory/tree/copilot-automations-layer). Where they differ, it shows the current event-driven **v2** design (live in andrejpk/sf-gh-tier, §6.1), with the first v1 run (§6) noted.
 
 | Concern | Lucas's Software Factory (this repo) | Lucas's SF, GitHub-native fork (`automations/`) | Your gh-orchestrator (T3 Code) | Factory.ai |
 |---|---|---|---|---|
-| Lead / orchestrator | Foundry agent in a local FastAPI app | Cloud automations on GitHub's models: `sf-planner` (BRD issue → task sub-issues), `sf-dispatcher`, `sf-pr-shepherd`, `sf-status-reporter` | Per-epic T3 thread (Opus high), plus a broker thread (Opus low) | Mission Control orchestrator agent |
-| Coders | Copilot cloud agent (assigned issues) | v1: Copilot cloud agent, but it doesn't start when an automation assigns it. **v2: an implementer automation writes the code itself** | Child T3 worktree threads (local agents) | Worker Droids |
-| Review | Copilot code review; findings sent back via `@copilot` comments | v1: Copilot ignored `@copilot` comments written by an automation. v2: the reviewer posts findings and adds the `sf:fix` label, the implementer pushes a fix, and the reviewer checks again | Cross-model reviewer child; human reviews and merges | Validator role plus Code Review |
-| Event intake | 60 s poller | Automation triggers (issue/PR/label/review events) plus an hourly sweep. Copilot finishing, its review arriving, and CI succeeding have no trigger | GitHub webhooks into T3 tasks; daily sweep | Delegations (Slack, Teams, Linear, Jira) plus Automations |
+| Lead / orchestrator | Foundry agent in a local FastAPI app | No single lead. Six cloud automations form a label-driven pipeline: `sf-planner` (BRD → task sub-issues), `sf-dispatcher` (WIP 2, dependency order), `sf-implementer`, `sf-reviewer`, `sf-pr-shepherd` (gates and merge), `sf-status-reporter` | Per-epic T3 thread (Opus high), plus a broker thread (Opus low) | Mission Control orchestrator agent |
+| Coders | Copilot cloud agent (assigned issues) | **v2: the `sf-implementer` automation**, itself a cloud agent session started by the `sf:in-progress` label. It pushes code, opens the PR and adds the `sf:review` label (about 15 credits per task). v1 assigned Copilot cloud agent, which doesn't start when an automation assigns it | Child T3 worktree threads (local agents) | Worker Droids |
+| Review | Copilot code review; findings sent back via `@copilot` comments | **v2: the `sf-reviewer` automation** (hve-core `code-review` skill) posts a COMMENT review with a verdict marker. The shepherd turns findings into an `sf:fix` label (max 3 rounds); the implementer pushes a fix and the reviewer re-reviews. Optional: hve-core's gh-aw `pr-review`. v1 used Copilot code review plus `@copilot` comments, which Copilot ignored when an automation wrote them | Cross-model reviewer child; human reviews and merges | Validator role plus Code Review |
+| Event intake | 60 s poller | Automation triggers on labels, reviews, issue close, CI failure and merge conflict (`allow_copilot_triggers` lets one automation's events start the next), plus hourly sweeps. **CI success has no trigger**, so that step waits for the sweep | GitHub webhooks into T3 tasks; daily sweep | Delegations (Slack, Teams, Linear, Jira) plus Automations |
 | State | SQLite plus local Markdown (BRD, memory) | **GitHub only**: BRD issue, sub-issues, `sf:*` labels, status issue | **GitHub only**: labels, marker comments, pinned plan comment, issue-body status; ledger on a branch | Factory cloud |
-| Gates | **Code** (`gates.py`): head-SHA match, clean review, checks, approval path | **Prompt rules** in the shepherd; rulesets were unavailable on a personal Free-plan private repo. One wrongful block happened | Human merges; lead reviews against the plan | Validator plus autonomy levels |
+| Gates | **Code** (`gates.py`): head-SHA match, clean review, checks, approval path | **Prompt rules** in the shepherd: verdict marker, CI, head SHA, cycle cap, plus an `sf:merge-evidence` comment. Personal automations can't approve their own PRs, and rulesets weren't available on the personal Free-plan repos. One wrongful block happened in v1 | Human merges; lead reviews against the plan | Validator plus autonomy levels |
 | UI | Custom React: chat, BRD, backlog, settings | None built in. The view is spread across issue lists, the Agents tab, PR timelines and the status issue; there's no Projects board tool. A Mission Control Pages SPA is designed but not built | T3 threads, GitHub issues, Artifact dashboard (hill-climb) | Factory App: Mission Control, Workstreams, multiplayer |
 | Multi-user | No (explicit non-goal) | Yes in principle: anyone with repo access works through issues and PRs (shared automations would act as Copilot) | Partly (anyone on the issue; thread links open for people with T3 access) | Yes |
 | Cross-repo | No | No (automation tools are scoped to one repo) | Yes (leads label sub-issues in other repos; cross-thread messaging) | Yes |
-| Hosting | Your laptop | **Nothing hosted**: GitHub automations, Actions and cloud agent | Your laptop or T3 environment | SaaS, private VPC, or air-gapped |
+| Hosting | Your laptop | **Nothing hosted**: GitHub automations, Actions and cloud agent. The repo must be private or internal | Your laptop or T3 environment | SaaS, private VPC, or air-gapped |
 | Reuse and provenance | Self-contained | hve-core and andrej-agent-kit linked through APM plus `gh aw add @sha`, with a weekly update PR | Plugin in andrej-agent-kit | Proprietary |
-| Cost seen | Foundry tokens plus Copilot | About 7.9 AI credits for 15 automation runs, plus Copilot coding and review sessions | Local model usage plus Copilot | Per seat or usage, with attribution per session, PR and ticket |
+| Cost seen | Foundry tokens plus Copilot | v2: about 15 AI credits per implemented task, plus small amounts for planning, dispatch, review and merge. v1: about 7.9 credits for 15 orchestration runs, with Copilot sessions billed separately | Local model usage plus Copilot | Per seat or usage, with attribution per session, PR and ticket |
 | Human steps needed | Approve and merge | v1: approve, plus three workarounds. **v2: only releasing held CI runs** (PRs #8–#10 merged through the chain) | Merge | Configurable autonomy |
 
 **How the ideas connect:**
@@ -65,11 +68,11 @@ The GitHub-native column describes the fork branch [`copilot-automations-layer`]
 |---|---|---|
 | BRD chat with the lead (§5.4, §6) | A Copilot app Project conversation (personal), **or** a BRD issue/discussion thread plus `docs/BRD.md` in the repo (team) | Good. Team-visible only in the issue variant |
 | Create task issues on the board (§7.2) | Automation tools `create_issue`, `add_sub_issue`, `set_issue_fields`; gh-aw `update-project` for Projects v2 Status | Good. Automations have **no Projects v2 item tool**, so the board needs gh-aw, or issue fields and built-in board workflows |
-| Dispatch with WIP limit and dependency DAG (§7.3) | Trigger "issue labeled `sf:ready`" plus "issue closed" plus a schedule sweep. `update_issue_assignees` assigns Copilot, or gh-aw `assign-to-agent`. Use native blocked-by links | Good. Assigning Copilot from an automation is **unverified** (child is testing). WIP is counted by the model, not a lock |
-| Wait for session, mark ready (§7.4.2–3) | Trigger "PR opened/synchronize" or "automation completed"; tool `update_pull_request_draft_state` | Good |
-| Start held workflow runs (§7.4.4) | Turn off "require approval" for Copilot PRs (simplest). Otherwise gh-aw `approve-workflow-run`. The automation tool `retry_workflow_run` covers failed jobs only | OK |
-| Request Copilot review (§7.4.5) | **Ruleset: automatic Copilot review on push.** Better than requesting it from an agent | Better than custom |
-| Route findings to `@copilot` (§7.4.7) | Trigger "PR review submitted (commented/changes_requested)"; tool `add_issue_comment` | Good, if Copilot-authored reviews can trigger automations ("Can be triggered by: People and Copilot"). **Unverified** |
+| Dispatch with WIP limit and dependency DAG (§7.3) | The `sf-dispatcher` automation runs on "issue opened/closed" and hourly. It moves tasks whose dependencies merged to `sf:in-progress`, which starts the implementer automation | **Verified (v2).** #6 waited for #5, and #7 waits for #6. WIP is counted by the model, not a lock. Assigning Copilot from an automation **doesn't work** (v1), which is why v2 doesn't do it |
+| Wait for session, mark ready (§7.4.2–3) | The implementer opens the PR itself and calls `update_pull_request_draft_state`, because automation PRs always open as drafts | Good (fixed in prompts) |
+| Start held workflow runs (§7.4.4) | Turn off "require approval" for agent pushes (simplest). Otherwise gh-aw `approve-workflow-run` with a token. The automation tool `retry_workflow_run` refuses held runs (409) | **The one remaining human step in v2** |
+| Request Copilot review (§7.4.5) | v2 uses its own `sf-reviewer` automation, started by the `sf:review` label. In an org repo, a ruleset can also add automatic Copilot review on push. The automation reviewer tool can't request Copilot review (v1) | Good |
+| Route findings back (§7.4.7) | The shepherd posts findings and adds the `sf:fix` label; the implementer's fix mode pushes to the PR head | **Verified (v2), PR #10.** `@copilot` comments from automations are ignored (v1) |
 | Remediation cap of 3 (§7.4.10) | A hidden marker comment counted by the prompt, or a label like `sf:cycle-2` | Prompt-enforced |
 | Merge gates with expected head SHA (§7.5) | **Ruleset (required checks, required review, Copilot review) plus auto-merge or a merge queue.** GitHub enforces the gate, and the agent only enables auto-merge | **Stronger** if moved to rulesets; weaker if left in a prompt |
 | Approval path (§7.5) | Shared automations act as Copilot, which needs an extra approval. Personal automations act as you, and you can't approve your own. **For a team pilot, a human teammate approves.** That is the participation you want anyway. Alternatively, enable Copilot approvals | Changes the model: human-in-the-loop by default |
@@ -79,7 +82,7 @@ The GitHub-native column describes the fork branch [`copilot-automations-layer`]
 
 **Answer:** yes, the delivery loop can run without your own backend. The backend splits into three layers:
 - **GitHub settings** (rulesets, auto-review, auto-merge) for the gates;
-- **shared cloud automations** for the event-driven agent steps;
+- **shared cloud automations** for the event-driven agent steps, including the coding itself (v2);
 - **gh-aw and Actions** for the steps that must be deterministic or need Projects v2 or held-run approval.
 
 The interactive lead (BRD shaping, planning) stays a conversation: in the Copilot app per person, or on an issue for the team.
@@ -152,26 +155,29 @@ flowchart LR
     BOARD[Projects v2 board]
     PR[PRs]
     RS[Rulesets + auto-review + auto-merge]
-    subgraph Automations[Shared cloud automations]
-      INTAKE[Intake / triage]
+    subgraph Automations[Shared cloud automations, chained by labels]
+      INTAKE[Planner]
       DISP[Dispatcher]
+      IMPL[Implementer]
+      REV[Reviewer]
       SHEP[PR shepherd]
-      SWEEP[Daily sweep + digest]
+      SWEEP[Daily status]
     end
     subgraph Actions[Actions / gh-aw]
+      HELD[Release held CI]
       BOARDSYNC[Board sync: update-project]
       DASH[Dashboard build -> Pages]
       QA[Runtime QA check]
     end
-    CCA[Copilot cloud agent]
-    CCR[Copilot code review]
   end
   PM --> LEAD --> EPIC
   PM -- labels / comments --> EPIC
-  EPIC --> INTAKE --> SUBS
-  SUBS -- sf:ready --> DISP --> CCA --> PR
-  PR --> CCR --> SHEP
-  SHEP -- "@copilot fixes" --> CCA
+  EPIC -- sf:plan --> INTAKE --> SUBS
+  SUBS -- issue closed --> DISP
+  DISP -- sf:in-progress --> IMPL --> PR
+  PR -- sf:review --> REV --> SHEP
+  SHEP -- sf:fix --> IMPL
+  PR --> HELD
   PR --> QA
   DEV -- approve --> PR
   RS -- enforce + auto-merge --> PR
@@ -199,10 +205,10 @@ The hve-core plugin is already installed on this machine (its `hve-core-all:*` a
 | BRD intake | `agents/project-planning/brd-builder`, `prd-builder`, `skills/project-planning/requirements-author`, `brd-quality-reviewer`, `prd-quality-reviewer` | Strong | **Use.** Replace Lucas's BRD template and the Foundry lead's BRD step. |
 | BRD/PRD → epic, stories and DAG | `functional-planner` (read-only plan), `backlog-manager` + `subagents/github-backlog-executor`, `skills/project-planning/backlog-plan`, `backlog-execute`, `backlog-management`, `instructions/project-planning/backlog-guardrails` | Strong | **Use.** It already splits planning from changing anything and creates issues and sub-issues. **Extend:** write dependencies (`blocked by`), WIP order and Projects v2 fields. |
 | Intake / triage | `workflows/issue-triage.md` (gh-aw), `agents/issue-triage.agent.md` | Strong | **Use as-is.** It labels `agent-ready`, which is the factory's "ready" signal. |
-| Implementer | `workflows/issue-implement.md` (gh-aw: `agent-ready` → PR), `skills/rpi/*`, `agents/hve-core/rpi-agent` | Medium | It runs in Actions with the Copilot engine instead of Copilot cloud agent. **Choose per repo:** gh-aw keeps everything in Actions and versioned, while cloud agent gives remediation through `@copilot` comments. The RPI skills are what either implementer should follow. |
-| Dispatcher (WIP limit, dependency order) | — | Missing | **Build.** A small Action or automation that applies `agent-ready` while it respects WIP and blockers. It reuses `gh-work.mjs`. |
+| Implementer | `workflows/issue-implement.md` (gh-aw: `agent-ready` → PR), `skills/rpi/*`, `agents/hve-core/rpi-agent` | Medium | It runs in Actions with the Copilot engine. **The v2 fork chose a cloud automation implementer instead**, started by a label, because an automation can't start Copilot cloud agent. The RPI skills are what either implementer should follow. |
+| Dispatcher (WIP limit, dependency order) | — | Missing | **Built** in the fork as `sf-dispatcher` (verified in v2). |
 | Reviewer | `workflows/pr-review.md` (gh-aw, `/review`), `skills/coding-standards/code-review` + its review-contract references | Strong | **Use.** Trigger it on `ready_for_review` (it currently runs only when someone comments `/review`). Pair it with Copilot code review. Its `needs-revision` and `review-passed` labels are good gate signals. |
-| PR shepherd (remediation loop, cycle cap, merge) | — | Missing | **Build.** Port Lucas's §7.4–7.5 rules into an automation that reads the `needs-revision` and `review-passed` labels. |
+| PR shepherd (remediation loop, cycle cap, merge) | — | Missing | **Built** in the fork as `sf-pr-shepherd` (verified in v2). It ports Lucas's §7.4–7.5 rules and can also read the `needs-revision` and `review-passed` labels. |
 | Backlog health and daily sweep | `workflows/backlog-groom-orchestrator.yml` + `backlog-groom.md` + `backlog-groom-publisher.yml`, `agents/backlog-grooming` | Strong | **Use.** It's a production-grade sharded orchestrator → workers → publisher. It's also a good template for how a Factory "Mission" should fan out. |
 | Docs freshness (like AutoWiki) | `workflows/doc-update-check.md`, `create-stale-docs-issues.yml`, `skills/hve-core/documentation` | Medium | **Use.** |
 | Security and supply-chain gates | `security-reviewer`, `sssc-*`, `dependency-pr-review.md`, owasp-* skills, `gh-code-scanning` | Strong | **Use** as optional required checks. |
@@ -211,7 +217,7 @@ The hve-core plugin is already installed on this machine (its `hve-core-all:*` a
 | Lead for hill-climbing and initiatives | — (RPI is closest) | Gap | **Keep** gh-orchestrator's `lead-initiative` and `lead-hill-climb`. Restate them as hve-core-style skills so they install through the same plugin. |
 
 **Net effect on the build:**
-- **Build three things:** the dispatcher, the PR shepherd, and the epic dashboard or Factory canvas.
+- **Build three things:** the dispatcher and the PR shepherd (both now exist in the fork) and the epic dashboard or Factory canvas (Mission Control, designed but not built).
 - **Glue the rest:** triage → `agent-ready` → implement → review labels are already a working gh-aw chain in hve-core.
 - **Contribute upstream:** the dispatcher and the shepherd could go back to hve-core as a "factory" collection, rather than living in a side repo. That fits "use and/or extend" and gives the pilot an internal home.
 
@@ -248,13 +254,15 @@ The hve-core plugin is already installed on this machine (its `hve-core-all:*` a
    - one required human approval (that's team participation);
    - labels `sf:ready`, `sf:needs-input`, `initiative`, `hill-climb-lead`;
    - board views.
-3. **Shared automations,** each with per-run and monthly AI credit caps:
-   - intake;
+3. **Shared automations,** installed from the fork's `automations/` with `install.ps1`, each with per-run and daily AI credit caps:
+   - planner;
    - dispatcher (WIP 2–3);
+   - implementer;
+   - reviewer;
    - PR shepherd;
-   - daily sweep and digest.
-   Keep definitions as code plus an install script, because automations aren't versioned in Git.
-4. **gh-aw and Actions:** board sync (Projects v2), dashboard to Pages, runtime-QA required check.
+   - daily status.
+   Keep definitions as code plus an install script, because automations aren't versioned in Git. The factory repo must be **private or internal**.
+4. **gh-aw and Actions:** release held CI on agent pushes (or relax that Actions setting), board sync (Projects v2), dashboard to Pages, runtime-QA required check.
 5. **Team rituals:**
    - planning happens in someone's Copilot app session and lands as an epic issue;
    - standup reads the digest issue and dashboard;
@@ -269,12 +277,12 @@ The hve-core plugin is already installed on this machine (its `hve-core-all:*` a
    A weekly automation writes these to the digest.
 
 ### 4.5 Risks and open questions
-- **Preview churn:** Projects, automations and assign-to-agent are all preview or new. Pin behaviours with a small live smoke test (the child session is building one).
+- **Preview churn:** Projects, automations and assign-to-agent are all preview or new. The fork's sandboxes act as live smoke tests; re-run them after preview changes.
 - **Identity:**
   - Shared automations act as Copilot, which adds an extra approval if approvals are required. Reviewers count, so that's fine.
   - Personal automations act as you, and you can't approve your own work.
   - Pick shared for the team pilot.
-- **Bot-triggered events:** do Copilot reviews and pushes trigger automations? This decides whether the shepherd is event-driven or sweep-driven. The child is testing it.
+- **Bot-triggered events (answered):** one automation's label and review events do start the next one when `allow_copilot_triggers` is set, so v2 is event-driven. Copilot code review submissions didn't fire triggers (v1), and CI success has no trigger, so those steps fall back to the hourly sweep.
 - **Automations limits:** one repo per automation, so cross-repo epics need gh-aw `dispatch-repository` or `assign-to-agent target-repo`. Your cross-repo lead pattern needs that path.
 - **Cost:** every automation run and every Copilot review costs AI credits. Re-review only after remediation (Lucas's rule).
 - **Security:** CI on agent PRs runs without per-run approval if you turn that off. Add CODEOWNERS on `.github/workflows/**` (Lucas §16.9).
@@ -288,6 +296,8 @@ The hve-core plugin is already installed on this machine (its `hve-core-all:*` a
 - **Factory.ai:** the benchmark for UX (Mission Control, multiplayer, validator, cost per feature). Use its feature list as the pilot's backlog for the UI layer.
 
 ## 6. Live findings from the automation-layer prototype
+
+### 6.0 v1: automations start Copilot cloud agent (superseded by §6.1)
 **Artifacts:**
 - Branch: [andrejpk/software-factory@copilot-automations-layer](https://github.com/andrejpk/software-factory/tree/copilot-automations-layer) (`automations/README.md`, `automations/GAPS.md`).
 - Sandbox: [andrejpk/sf-automation-sandbox](https://github.com/andrejpk/sf-automation-sandbox), status issue #7.
@@ -304,13 +314,9 @@ The hve-core plugin is already installed on this machine (its `hve-core-all:*` a
 | 4 | The reviewer tool reports success requesting Copilot review but creates no request | Turn on **Copilot auto-review on push in rulesets** instead. |
 | 5 | No triggers for Copilot finishing its work, Copilot's review being submitted, or CI succeeding | Those steps wait for the hourly sweep. That's slow but works; Actions `check_suite`/`workflow_run` events could fill the gap. |
 | 6 | Rulesets return 403 on a private repo on the Free plan, so gates were prompt-only and one wrong block happened | **The pilot must run in an org repo** (Team/Enterprise) so rulesets enforce the gates. |
-| 7 | No Projects v2 tool; the view is spread across issues, the Agents tab, PRs and the status issue | Confirms §3.2/§3.3. A Mission Control design (Pages, using the viewer's own token) is in child session "Factory mission control design" and waits for review. |
+| 7 | No Projects v2 tool; the view is spread across issues, the Agents tab, PRs and the status issue | Confirms §3.2/§3.3. A Mission Control design (a static Pages app using the viewer's own token) is approved as `DESIGN.md`; the prototype isn't built yet. |
 
-**Changed conclusion:** cloud automations work well as the *reasoning* layer: planning, sweeps and status. They can't yet be the *actor* that starts Copilot work, because Copilot ignores actions taken by the automation identity. For the pilot:
-- **gh-aw** with a user or bot PAT handles the start steps: assigning Copilot, `@copilot` comments, and re-running CI.
-- **Automations** plan and report.
-- **Rulesets in an org repo** enforce the gates.
-- Re-test findings 1–2 with **shared** automations, which act as Copilot rather than as a user. They might behave differently.
+**v1 conclusion (superseded by v2 below):** cloud automations work well as the *reasoning* layer, but they can't be the *actor* that starts Copilot cloud agent work, because Copilot ignores actions taken by another agent. v2 removes that hand-off entirely.
 
 ### 6.1 v2: event-driven factory with no Copilot hand-off (sf-gh-tier)
 Commit [2264162](https://github.com/andrejpk/software-factory/tree/copilot-automations-layer), live in the private repo andrejpk/sf-gh-tier.
@@ -318,14 +324,28 @@ Commit [2264162](https://github.com/andrejpk/software-factory/tree/copilot-autom
 **Design change:** v2 avoids findings 1–2 instead of working around them. No automation assigns Copilot or posts `@copilot`. An **implementer automation writes the code itself**, and the stages hand off only through labels, PRs and reviews.
 
 **Result:**
-- PRs #8, #9 and #10 merged through the chain. #10 went through a full findings → `sf:fix` → fix push → clean re-review cycle with no person involved.
-- The dispatcher waited on dependencies correctly: #6 started only after #5 closed, and #7 waits for #6.
-- **One manual step remains:** a person must release held CI runs (`action_required`) on agent pushes.
+- Six automations: `sf-planner`, `sf-dispatcher`, `sf-implementer`, `sf-reviewer`, `sf-pr-shepherd`, `sf-status-reporter`. Personal automations, acting as andrejpk.
+- BRD: a multiplayer tier-list party game, planned into tasks #3–#7 with dependency lists.
+
+| Step | Trigger → action | Evidence | Human? |
+|---|---|---|---|
+| Dispatch | `issue_closed` → dispatcher labels ready tasks `sf:in-progress` (WIP 2, dependencies respected) | #4 and #5 started after #3; #6 waited for #5; #7 waits for #6 | No |
+| Implement | `sf:in-progress` → implementer writes code, opens the PR, labels `sf:pr` and `sf:review` | PRs #9 and #10, with no assignment and no `@copilot` (about 15 credits per task) | No |
+| Review | `sf:review` → reviewer posts a COMMENT review with a verdict marker | PR #8 clean; PR #10 one finding | No |
+| Fix | shepherd posts findings and `sf:fix` → implementer pushes to the PR head and relabels `sf:review` | PR #10: fix pushed, clean re-review 4 minutes later | No |
+| Gate and merge | review submitted → shepherd checks the verdict, CI and head SHA, posts evidence, squash-merges | PRs #8, #9, #10 merged | No |
+| Release held CI | — | Agent pushes create `action_required` runs; `retry_workflow_run` returns 409; `gh run rerun` as a user works | **Yes** |
+
+**Fixed in the prompts during the run:**
+- Automation-created PRs are always drafts, even with `draft:false`, so the implementer and the shepherd mark them ready.
+- A PR created seconds earlier may not resolve yet, so the implementer retries labelling.
+- `pull_request_merged` and `issue_closed` both fire on a merge, so the dispatcher listens only to `issue_closed`.
 
 **New gaps:**
 - There's still no trigger on CI success, so the shepherd waits for the hourly sweep.
-- PRs created by automations are always drafts; the prompts now handle this.
-- Task state can go stale.
-- **Automations don't run in public repos**, so the factory repo must be private or internal.
+- Task state can go stale (a finished implementer task still reports `in_progress`), so the factory reads labels instead.
+- **Automations don't run in public repos.** Making sf-gh-tier public turned them off; making it private restored them with their configuration intact.
+- Personal automations can't approve their own PRs, so the review gate is a verdict marker the shepherd enforces, not branch protection.
+- **Trade-off:** v2 replaces Copilot cloud agent's assigned-issue PR experience and Copilot code review with its own implementer and reviewer automations. The work is still done in cloud agent sessions, visible in the Agents tab.
 
 **Updated conclusion:** a factory built only from automations is viable if the automation is also the coder. The only remaining step that still needs a person is releasing held CI runs, which one Actions workflow with a user or bot token, or a ruleset setting in an org repo, can address.
