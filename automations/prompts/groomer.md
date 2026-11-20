@@ -47,6 +47,8 @@ status label, i.e. released but not started). Priority labels: `sf:p1` (do next)
    highest-priority backlog item whose dependencies are all closed or already released as
    `sf:task`, and in a single `update_issue_labels` call add `sf:task` and remove `sf:backlog`.
    Release items whose dependencies are still open only after their dependencies are released.
+   If a released, not-started task depends on an item that is back in `sf:backlog`, un-release it
+   (remove `sf:task`, add `sf:backlog`) so it doesn't hold a queue slot.
 7. Report: comment on the open `sf:status` issue (create it, titled "Software Factory status" and
    labelled `sf:status`, if missing) with `<!-- sf:groom-plan -->`: one plain-language line per
    theme or item in planned order (Issue | Priority | Depends on | State: released or waiting),
