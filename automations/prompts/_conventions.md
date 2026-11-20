@@ -21,7 +21,10 @@ Labels form the state machine:
 * Triage: `sf:triage` on a feedback issue asks the triager to file it; the triager swaps it for
   `sf:triaged`. Triaged items carry `sf:backlog` plus one kind label: `sf:bug`, `sf:enhancement` or
   `sf:feature`. A person promotes a bug or enhancement by adding `sf:task`, and a feature by
-  adding `sf:plan`.
+  adding `sf:plan`. The groomer can also release items itself; it labels them `sf:p1`–`sf:p3`, and
+  `sf:hold` parks an item. `sf:needs-design` means an item needs design before code (the triager
+  proposes it; a person decides). The groomer then creates an `sf:design` story, which a person
+  designs and closes with the chosen direction. The factory never builds an `sf:design` issue.
 
 Orchestration is by GitHub state only. Stages never talk to each other: no `@copilot` or
 `@mention` requests, no assigning Copilot or other agents, no reviewer requests to bots, and no

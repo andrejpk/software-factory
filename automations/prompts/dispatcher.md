@@ -17,10 +17,14 @@ implementer automation starts on it.
    `sf:backlog`.
 4. Count in-flight tasks: open `sf:task` issues labelled `sf:in-progress` or `sf:in-review`.
    Free slots = 2 minus that count. If there are no free slots, stop.
-5. Dispatch: take `sf:ready` issues in ascending issue-number order, up to the free slots. For each,
+5. Dispatch: take `sf:ready` issues in priority order (`sf:p1`, then `sf:p2`, then `sf:p3`, then
+   unlabelled), ascending issue number within a priority, up to the free slots. For each,
    skip it if an open PR already contains `Closes #<n>` (`search_pull_requests`); otherwise replace
    `sf:ready` with `sf:in-progress` and comment "Dispatched by the Software Factory (WIP slot <k>/2)."
-   Label changes are the whole action; do not assign the issue.
+   Label changes are the whole action; do not assign the issue. Several dispatcher runs can start
+   at once (one per label event), so after dispatching re-list in-flight tasks; if more than 2 are
+   `sf:in-progress` with no PR yet, put back the highest-numbered one you dispatched in this run
+   (`sf:in-progress` → `sf:ready`) and say so in a comment.
    Stalled work: an `sf:in-progress` task with no linked open PR whose label is more than 2 hours
    old and that has no `sf:blocked` comment gets one comment with
    `<!-- sf:blocked reason=implementer-stalled -->` and `sf:blocked`.

@@ -52,6 +52,8 @@ if (-not $SkipLabels) {
                 'sf:held-ci' = 'ff7619'
         'sf:triage' = 'f9d0c4'; 'sf:triaged' = 'fef2c0'; 'sf:backlog' = 'ededed'
         'sf:bug' = 'd73a4a'; 'sf:enhancement' = 'a2eeef'; 'sf:feature' = '7057ff'
+        'sf:p1' = 'b60205'; 'sf:p2' = 'fbca04'; 'sf:p3' = 'c2e0c6'; 'sf:hold' = '000000'
+        'sf:needs-design' = 'f7c6c7'; 'sf:design' = 'd4c5f9'
     }
     foreach ($name in $labels.Keys) {
         gh label create $name --color $labels[$name] --repo $Repo --force | Out-Null
@@ -63,8 +65,20 @@ $existing = @{}
 foreach ($a in (Invoke-Gh GET "$($api)?per_page=100" $null).automations) { $existing[$a.name] = $a }
 
 $installed = @{}
-foreach ($file in Get-ChildItem "$root/definitions/*.json" | Sort-Object Name) {
+# Definitions that chain on other automations (automation_names) install last, so their upstream IDs exist.
+$files = Get-ChildItem "$root/definitions/*.json" | Sort-Object @{ e = { (Get-Content $_.FullName -Raw) -match 'automation_names' } }, Name
+foreach ($file in $files) {
     $def = Get-Content $file.FullName -Raw | ConvertFrom-Json
+    foreach ($t in $def.triggers.PSObject.Properties) {
+        if ($t.Value.PSObject.Properties.Name -contains 'automation_names') {
+            $ids = foreach ($n in $t.Value.automation_names) {
+                $id = if ($installed.ContainsKey($n)) { $installed[$n] } elseif ($existing.ContainsKey($n)) { $existing[$n].id } else { throw "Unknown upstream automation '$n' in $($file.Name)" }
+                $id
+            }
+            $t.Value.PSObject.Properties.Remove('automation_names')
+            $t.Value | Add-Member -NotePropertyName automation_ids -NotePropertyValue @($ids)
+        }
+    }
     $prompt = ($def.prompt_files | ForEach-Object { Get-Content "$root/prompts/$_" -Raw }) -join "`n`n"
     $body = [ordered]@{
         name                           = $def.name

@@ -43,6 +43,7 @@ flowchart LR
 | --- | --- | --- | --- |
 | `sf-planner` | [planner.md](prompts/planner.md) | issue labelled `sf:plan` (`sf:brd` or `sf:feature`) | creating `sf:task` sub-issues with acceptance criteria and dependencies |
 | `sf-triager` | [triager.md](prompts/triager.md) | issue labelled `sf:triage` | filing `sf:backlog` bug, enhancement and feature sub-issues |
+| `sf-backlog-groomer` | [groomer.md](prompts/groomer.md) | triager run completed, task or design closed, daily | sequencing, grouping and prioritising the backlog, creating `sf:design` stories, releasing up to 2 items as `sf:task` |
 | `sf-dispatcher` | [dispatcher.md](prompts/dispatcher.md) | task opened or closed, PR merged, hourly | moving tasks whose dependencies merged from `sf:ready` to `sf:in-progress`, up to WIP 2 |
 | `sf-implementer` | [implementer.md](prompts/implementer.md) | task labelled `sf:in-progress`; PR labelled `sf:fix` | pushing code (`report_progress`), opening the PR, labelling it `sf:review` |
 | `sf-reviewer` | [reviewer.md](prompts/reviewer.md) | PR labelled `sf:review` | submitting a review with inline findings and a verdict marker (hve-core `code-review` skill) |
@@ -105,6 +106,19 @@ with one label write:
 
 This is the lightweight version of the feature-lead row above: a feature is planned once, and
 there's no lead session that keeps context across its tasks.
+
+`sf-backlog-groomer` also releases items itself. After each triage run it writes `## Dependencies`,
+groups related items under an `sf:feature`, sets `sf:p1`–`sf:p3`, and adds `sf:task` to at most 2
+unblocked items. It posts its plan as a `<!-- sf:groom-plan -->` comment on the `sf:status` issue.
+`sf:hold` keeps an item out of this.
+
+**Design before code.** `sf:needs-design` on an item means "design this first". The triager
+proposes it, and a person adds or removes it. The groomer then creates a `Design: …` sub-issue
+labelled `sf:design`, which states the design type (product, UX/interaction, visual/UI, content or
+research) and the fidelity (sketch to clickable prototype). The item depends on it. A person
+assigns the designer, and closes the story with the chosen direction. The groomer links that
+direction into the item, removes `sf:needs-design` and can then release it. The factory never
+builds `sf:design` issues.
 | Hill-climb lead | Out of scope for now | — |
 
 ## Install

@@ -1,0 +1,41 @@
+{
+  "name": "sf-backlog-groomer",
+  "description": "Prioritises, sequences and groups sf:backlog items into themes, then releases them as sf:task a few at a time (queue depth 2).",
+  "type": "personal",
+  "prompt_files": [
+    "_conventions.md",
+    "groomer.md"
+  ],
+  "run_limit_credits": 30,
+  "daily_limit_credits": 90,
+  "tools": [
+    "github/issue_read",
+    "github/get_me",
+    "github/list_issues",
+    "github/search_issues",
+    "github/update_issue_labels",
+    "github/update_issue_body",
+    "github/add_issue_comment",
+    "github/create_issue",
+    "github/add_sub_issue",
+    "github/get_file_contents",
+    "github/search_code"
+  ],
+  "triggers": {
+    "automation_completed": {
+      "automation_names": [
+        "sf-triager"
+      ]
+    },
+    "issue_closed": {
+      "write_scope": "repository",
+      "allow_copilot_triggers": true,
+      "query": "label:sf:task,sf:design"
+    },
+    "interval": {
+      "cadence": [
+        "daily"
+      ]
+    }
+  }
+}
