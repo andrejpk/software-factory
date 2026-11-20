@@ -149,10 +149,12 @@ What a **customer** sees: issues and PRs in a private repository they must have 
 the status issue. What a **team member** sees: the same, plus the Agents tab. Neither gets a
 mission-control view or a queue of "things only a human can do".
 
-A GitHub-only Mission Control design is in progress in a separate session (static SPA on GitHub
-Pages that calls the GitHub API with the viewer's own token: attention queue, pipeline, task DAG,
-PR gates, automations and credits; no added compute, storage or model). It is waiting for review
-and will land as `automations/mission-control/DESIGN.md`.
+A GitHub-only Mission Control design is written and approved, but not built yet. It's a static
+SPA on GitHub Pages that calls the GitHub API with the viewer's own token, showing an attention
+queue, pipeline, task DAG, PR gates, automations and credits, with no added compute, storage or
+model. It's on the `andrejky-microsoft-factory-mission-control-design` branch as
+`automations/mission-control/DESIGN.md`, aligned with the v2 label-driven design: the human
+actions it offers are label writes and releasing held CI.
 
 ## Other things this approach loses or changes
 

@@ -67,6 +67,29 @@ Todo (no status label) → `sf:ready` → `sf:in-progress` → `sf:in-review` �
 while the reviewer or implementer owns them. Labels stand in for the original Projects v2 Status field
 because automations have no Projects v2 tool.
 
+### Roadmap: stand-alone issues and feature leads
+
+Today the planner flattens a BRD straight into tasks, and every task runs as a stand-alone issue.
+The next layer borrows patterns from
+[gh-orchestrator](https://github.com/andrejpk/andrej-agent-kit/tree/main/plugins/gh-orchestrator),
+but uses only GitHub primitives: no T3 threads, and no agent-to-agent messages. The factory's
+scope is wider than that package: BRD → features → tasks, with gates and a dashboard.
+
+| gh-orchestrator pattern | Factory equivalent | Status |
+| --- | --- | --- |
+| Intake thread per issue | Implementer build mode on `sf:in-progress` | Live |
+| Intake asks blocking questions; a person's reply wakes it | Implementer posts a question, labels `sf:question`; a person's comment (`issue_comment_created`) wakes it | Planned |
+| Intake proposes leading the issue when it's too big | Implementer labels `sf:propose-lead` and stops; a person adds `sf:feature` | Planned |
+| Lead thread (`initiative` label) | `sf-lead` automation on `sf:feature`; the planner turns a BRD into feature issues, not tasks | Planned |
+| Lead memory = the thread's conversation | Each run is a fresh session, so the lead's memory is a pinned `<!-- sf:lead-plan -->` comment plus a `<!-- sf:lead-status -->` body section | Planned (main loss vs a T3 lead thread) |
+| Plan approved before sub-issues are created | Lead posts the plan; a person adds `sf:plan-approved` | Planned |
+| Native sub-issue and blocked-by links | Replace the `## Dependencies` text the dispatcher parses | Planned |
+| Lead starts children by labelling them `ready`, a few at a time | Lead or dispatcher adds `sf:ready`; WIP stays a label count | Live (dispatcher) |
+| Child messages its lead (`t3_thread_send`) | Not used. The lead wakes on sub-issue closed, PR review submitted, and person comments on the parent | By design |
+| Lead reviews child PRs against the plan | Reviewer also reads the parent's plan comment | Planned |
+| Pinned "Agent work" dashboard issue | Reporter's status issue, then Mission Control | Partial |
+| Hill-climb lead | Out of scope for now | — |
+
 ## Install
 
 Prerequisites: a **private or internal** repository (making a repository public turns its
