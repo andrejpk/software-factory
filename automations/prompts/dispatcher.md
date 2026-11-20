@@ -5,9 +5,12 @@ Whatever the trigger, reconcile the whole backlog; do not act only on the trigge
 You never assign anyone and never mention anyone: the `sf:in-progress` label is the handoff, and the
 implementer automation starts on it.
 
-1. List all `sf:task` issues (open and closed) with `list_issues` or `search_issues`.
+1. List all `sf:task` issues (open and closed) with `list_issues` (not search, which lags new
+   issues). If a triggering issue is named in the event, also read it with `issue_read` and include
+   it even if the list missed it. A task with no `## Dependencies` section has no dependencies.
 2. Closed tasks: if a closed `sf:task` issue lacks `sf:done`, set its status label to `sf:done`
-   (remove the other status labels).
+   (remove the other status labels). An open task labelled `sf:done` was merged without a closing
+   link: close it with `update_issue_state` and do not re-queue it.
 3. Promote: for each open `sf:task` issue that has no status label, read its `## Dependencies`
    section. If every listed dependency issue is closed, add `sf:ready`.
 4. Count in-flight tasks: open `sf:task` issues labelled `sf:in-progress` or `sf:in-review`.

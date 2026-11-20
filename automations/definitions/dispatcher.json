@@ -15,7 +15,9 @@
     "github/update_issue_labels",
     "github/add_issue_comment",
     "github/search_pull_requests",
-    "github/list_pull_requests"
+    "github/list_pull_requests",
+    "github/update_issue_state",
+    "github/pull_request_read"
   ],
   "triggers": {
     "issue_opened": {

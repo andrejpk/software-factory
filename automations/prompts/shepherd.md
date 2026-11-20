@@ -36,8 +36,10 @@ For each PR, evaluate in this order and stop at the first step that says stop.
 7. Merge gates (all must hold, otherwise stop and wait): no findings; the head review verdict is
    `clean`; every workflow run for the head concluded `success` (zero runs only if the repository
    has no workflow files); PR is not a draft; mergeable is true; the head SHA is unchanged since step 3.
-8. Merge: post a comment summarising the evidence (review link and verdict, workflow runs and
+8. Merge: first make sure the PR body contains `Closes #<task>`. If it doesn't, append it with
+   `update_pull_request_body`. Then post a comment summarising the evidence (review link and verdict, workflow runs and
    conclusions) with `<!-- sf:merge-evidence head=<sha> -->`. Then call `merge_pull_request` with
    method `squash` and the expected head SHA. If the merge fails, comment the exact error with
    `<!-- sf:blocked reason=merge-refused -->`, label the task `sf:blocked`, stop. On success the
-   linked task closes; set its label to `sf:done`.
+   linked task should close. Read the task with `issue_read`; if it is still open, close it with
+   `update_issue_state`. Only then set its label to `sf:done`. Never label an open task `sf:done`.

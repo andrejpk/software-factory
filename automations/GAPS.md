@@ -40,6 +40,7 @@ tasks #3–#7 with dependency lists.
 | Implement | `sf:in-progress` → `sf-implementer` writes code with `report_progress`, opens the PR, labels `sf:pr` + `sf:review` | PRs #9 and #10 opened with no assignment and no `@copilot` (≈15 credits per task) | No |
 | Fix | shepherd posts findings + `sf:fix` → implementer fix mode pushes to the PR head and relabels `sf:review` | PR #10: fix pushed 18:13, clean re-review 18:17 | No |
 | Release held CI | — | Agent pushes produce `action_required` runs. `retry_workflow_run` returns 409. `gh run rerun` as a user works | **Yes** |
+| Stand-alone issue | Person opens an issue labelled `sf:task` with no dependencies → dispatcher → implementer → reviewer → shepherd | [#12](https://github.com/andrejpk/sf-gh-tier/issues/12) → [PR #13](https://github.com/andrejpk/sf-gh-tier/pull/13) merged; the shepherd added the missing `Closes #12` | Held CI only |
 
 Problems found and fixed in the prompts during the run:
 
@@ -49,6 +50,11 @@ Problems found and fixed in the prompts during the run:
   implementer retries labelling, and PR #9 lost its labels and `Closes #4` the first time.
 - `pull_request_merged` and `issue_closed` both fire on a merge, which duplicated dispatcher
   comments. The dispatcher now listens to `issue_closed` only.
+- Implementers sometimes omit `Closes #n` (PR #11), which left #6 open but labelled `sf:done`
+  and held back #7. The shepherd now adds `Closes #n` before merging and closes the task if it's
+  still open. The dispatcher closes any open task labelled `sf:done`.
+- The dispatcher ran 4 s after #12 was opened and missed it, probably because issue search lags.
+  It now lists issues with `list_issues` and reads the triggering issue directly.
 
 Gaps that remain in v2:
 
