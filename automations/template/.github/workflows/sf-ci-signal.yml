@@ -1,0 +1,40 @@
+# Software Factory: turns CI results into PR labels so automations react to events, not timers.
+# Automation `workflow_run` triggers only fire on failure, and CI on agent pushes can be held for
+# approval. This workflow (which runs from the default branch, so it is never held) labels each
+# factory PR for the run's head SHA:
+#   success          -> re-add `sf:ci-green` (wakes sf-pr-shepherd) and remove `sf:held-ci`
+#   action_required  -> add `sf:held-ci` (the "needs a human" signal; wakes sf-status-reporter)
+name: sf-ci-signal
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+permissions:
+  pull-requests: write
+  issues: write
+jobs:
+  signal:
+    if: github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'action_required'
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          prs=$(gh api "repos/$REPO/commits/$SHA/pulls" \
+            --jq '.[] | select(.state == "open") | select(any(.labels[]; .name == "sf:pr")) | .number')
+          for n in $prs; do
+            head=$(gh api "repos/$REPO/pulls/$n" --jq .head.sha)
+            [ "$head" = "$SHA" ] || continue
+            if [ "$CONCLUSION" = "success" ]; then
+              gh api -X DELETE "repos/$REPO/issues/$n/labels/sf:held-ci" >/dev/null 2>&1 || true
+              # Remove then add, so the label event fires again for every green head.
+              gh api -X DELETE "repos/$REPO/issues/$n/labels/sf:ci-green" >/dev/null 2>&1 || true
+              gh api -X POST "repos/$REPO/issues/$n/labels" -f "labels[]=sf:ci-green" >/dev/null
+            else
+              gh api -X POST "repos/$REPO/issues/$n/labels" -f "labels[]=sf:held-ci" >/dev/null
+            fi
+            echo "PR #$n: $CONCLUSION"
+          done

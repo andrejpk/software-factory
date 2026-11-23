@@ -53,6 +53,7 @@ if (-not $SkipLabels) {
         'sf:triage' = 'f9d0c4'; 'sf:triaged' = 'fef2c0'; 'sf:backlog' = 'ededed'
         'sf:bug' = 'd73a4a'; 'sf:enhancement' = 'a2eeef'; 'sf:feature' = '7057ff'
         'sf:p1' = 'b60205'; 'sf:p2' = 'fbca04'; 'sf:p3' = 'c2e0c6'; 'sf:hold' = '000000'
+        'sf:retry' = '0e8a16'; 'sf:ci-green' = '2ea44f'; 'sf:groom' = 'bfdadc'
         'sf:needs-design' = 'f7c6c7'; 'sf:design' = 'd4c5f9'
     }
     foreach ($name in $labels.Keys) {

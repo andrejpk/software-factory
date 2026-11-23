@@ -22,11 +22,25 @@
     "github/actions_list"
   ],
   "triggers": {
-    "interval": {
-      "cadence": [
-        "daily"
+    "issue_labeled": {
+      "labels": [
+        "sf:blocked",
+        "sf:needs-design"
       ],
-      "hour_utc": 13
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
+    },
+    "pull_request_labeled": {
+      "labels": [
+        "sf:held-ci"
+      ],
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
+    },
+    "issue_closed": {
+      "query": "label:sf:task",
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
     }
   }
 }

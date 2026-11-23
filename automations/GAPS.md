@@ -68,7 +68,8 @@ Gaps that remain in v2:
   human"; still no push notification. After release, BRD #1 got `sf:delivered`: all 5 BRD tasks
   merged.
 - **No trigger on CI success.** `workflow_run` fires on failure only, so after a person
-  releases CI and it passes, the shepherd waits for its hourly sweep or a manual run (PR #10).
+  releases CI and it passes, the shepherd waited for its hourly sweep or a manual run (PR #10).
+  Fixed in v3: the `sf-ci-signal` Actions workflow turns CI success into the `sf:ci-green` label.
 - **Stale task state.** The first #5 implementer task still reports `in_progress` long after
   its session pushed, so task state is not a reliable "done" signal. The factory reads the
   labels instead.
@@ -179,14 +180,52 @@ offers are label writes and releasing held CI. Read-only live testing against sf
   Copilot and bill the repository owner. The Foundry model choice and Azure billing disappear.
 * **Public repositories.** Cloud automations run only in private or internal repositories. A
   public fork can hold the code, but not run the loop.
-* **Latency.** Several transitions wait for the hourly sweep: session finished, Copilot review
-  submitted, CI succeeded. The original poller ran every 60 seconds.
+* **Latency and timers.** v1/v2 leaned on hourly and daily sweeps. v3 removes every automation
+  schedule (see "Event-driven, no timers" below); the original poller ran every 60 seconds.
 * **State.** All state is labels, markers and issue bodies. That's resilient, but there's no
   history store or analytics beyond what GitHub keeps.
 * **Definitions outside Git.** Automations aren't versioned by GitHub. `install.ps1` and
   `definitions/` provide that, but someone can still edit an automation in the UI and drift.
 * **Preview APIs.** The automations API version is `2026-03-10` (public preview). Trigger names,
   tool names and limits may change.
+
+## Event-driven, no timers (v3)
+
+No automation runs on a schedule. Every handoff is an event:
+
+| Was | Now |
+| --- | --- |
+| Dispatcher hourly sweep | `sf:task` / `sf:retry` added (with `allow_copilot_triggers`), task opened or closed, implementer run `crashed` / `timed_out` (`automation_failed`) |
+| Dispatcher "in progress > 2 h" stall rule | `automation_failed` on `sf-implementer` |
+| Shepherd hourly sweep | `sf:ci-green` added by the `sf-ci-signal` Actions workflow on every passing CI head |
+| Groomer daily | triager completed, task/design closed, person adds `sf:needs-design` or `sf:groom` |
+| Reporter daily | `sf:blocked`, `sf:needs-design`, `sf:held-ci` added; task closed |
+
+Evidence that drove this: the sweep was hiding a bug. The groomer released #18 and #19 at
+~21:45, but the dispatcher's `issue_labeled` trigger lacked `allow_copilot_triggers`, so
+automation-made labels never fired it; work started only at the next hourly run (22:03).
+
+Remaining gaps:
+
+* **Held CI still needs a person.** Copilot-pushed PR runs are `action_required`; no automation
+  tool can approve them. `sf-ci-signal` labels the PR `sf:held-ci` immediately (and the reporter
+  surfaces it), but a person must release it, or turn off "Require approval for workflow runs" for
+  the cloud agent in repo settings (low risk here: the repo has no Actions secrets).
+* **No backstop for a lost event.** With no sweep, a dropped trigger or a run that ends without
+  handing off leaves work parked until the next related event. `automation_failed` covers
+  crashes and timeouts; a run that "succeeds" without labelling does not. A manual run of the
+  dispatcher or shepherd (or Mission Control's "Run now") reconciles everything.
+* **No unlabel trigger.** Removing `sf:blocked` or `sf:hold` fires nothing, so the unblock
+  gesture is "add `sf:retry`" (dispatcher) or "add `sf:groom`" (groomer).
+* **`workflow_run` triggers accept only `conclusion: failure`.** Hence the Actions bridge
+  workflow; it is the one piece of factory logic in YAML rather than an automation.
+* **Unverified:** whether labels added with `GITHUB_TOKEN` fire automation triggers (GitHub
+  suppresses `GITHUB_TOKEN` events for Actions; automations may differ). If not, give
+  `sf-ci-signal` a fine-grained PAT (`issues`/`pull-requests: write`). Also unverified: whether
+  a held run emits `workflow_run: completed` with `action_required`; the shepherd still labels
+  `sf:held-ci` itself as a fallback.
+* **Out-of-loop timers that remain:** `sf-deps-update.yml` (weekly APM/gh-aw refresh, not part
+  of the work loop) and the external monitor session (20 min, observability only).
 
 ## Reuse from microsoft/hve-core and andrej-agent-kit
 

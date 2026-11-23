@@ -35,10 +35,12 @@ trigger fires on that event. Every stage is idempotent, so a duplicate trigger i
 | --- | --- | --- |
 | planner | issue labelled `sf:plan` | creating `sf:task` sub-issues |
 | triager | issue labelled `sf:triage` | creating `sf:backlog` sub-issues (never `sf:task`) |
-| dispatcher | task opened or closed, PR merged, hourly | task `sf:ready` → `sf:in-progress` |
+| dispatcher | task opened or closed, `sf:task` or `sf:retry` added, implementer crashed | task `sf:ready` → `sf:in-progress` |
 | implementer | task labelled `sf:in-progress`; PR labelled `sf:fix` | PR labelled `sf:review` |
 | reviewer | PR labelled `sf:review` | submitting a review |
-| shepherd | review submitted, CI failed, merge conflict, hourly | PR labelled `sf:fix`, or merge |
+| shepherd | review submitted, CI failed, `sf:ci-green` added, merge conflict | PR labelled `sf:fix`, or merge |
+
+No stage runs on a timer. To clear a block, a person fixes the cause and adds `sf:retry`.
 
 Task issue bodies contain a `## Dependencies` section that lists prerequisite issues as
 `- #<number>` lines, or `- none`.

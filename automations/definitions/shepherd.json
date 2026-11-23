@@ -51,10 +51,12 @@
       "write_scope": "repository",
       "allow_copilot_triggers": true
     },
-    "interval": {
-      "cadence": [
-        "hourly"
-      ]
+    "pull_request_labeled": {
+      "labels": [
+        "sf:ci-green"
+      ],
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
     }
   }
 }

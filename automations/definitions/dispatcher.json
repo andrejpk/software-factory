@@ -32,13 +32,19 @@
     },
     "issue_labeled": {
       "labels": [
-        "sf:task"
+        "sf:task",
+        "sf:retry"
       ],
-      "write_scope": "repository"
+      "write_scope": "repository",
+      "allow_copilot_triggers": true
     },
-    "interval": {
-      "cadence": [
-        "hourly"
+    "automation_failed": {
+      "automation_names": [
+        "sf-implementer"
+      ],
+      "reasons": [
+        "crashed",
+        "timed_out"
       ]
     }
   }

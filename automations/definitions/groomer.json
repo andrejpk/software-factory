@@ -32,10 +32,12 @@
       "allow_copilot_triggers": true,
       "query": "label:sf:task,sf:design"
     },
-    "interval": {
-      "cadence": [
-        "daily"
-      ]
+    "issue_labeled": {
+      "labels": [
+        "sf:needs-design",
+        "sf:groom"
+      ],
+      "write_scope": "repository"
     }
   }
 }

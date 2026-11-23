@@ -36,22 +36,29 @@ flowchart LR
   S -- "PR label sf:fix + findings<br/>(max 3)" --> I
   S -- "gated squash merge" --> M[(main)]
   M -- "PR merged / issue closed" --> D
-  R[sf-status-reporter] -. "daily" .-> ST["Status issue (sf:status)"]
+  CI[[sf-ci-signal workflow]] -- "CI passed: PR label sf:ci-green" --> S
+  R[sf-status-reporter] -. "blocked / held / task closed" .-> ST["Status issue (sf:status)"]
 ```
 
 | Automation | Prompt | Started by | Hands off by |
 | --- | --- | --- | --- |
 | `sf-planner` | [planner.md](prompts/planner.md) | issue labelled `sf:plan` (`sf:brd` or `sf:feature`) | creating `sf:task` sub-issues with acceptance criteria and dependencies |
 | `sf-triager` | [triager.md](prompts/triager.md) | issue labelled `sf:triage` | filing `sf:backlog` bug, enhancement and feature sub-issues |
-| `sf-backlog-groomer` | [groomer.md](prompts/groomer.md) | triager run completed, task or design closed, daily | sequencing, grouping and prioritising the backlog, creating `sf:design` stories, releasing up to 2 items as `sf:task` |
-| `sf-dispatcher` | [dispatcher.md](prompts/dispatcher.md) | task opened or closed, PR merged, hourly | moving tasks whose dependencies merged from `sf:ready` to `sf:in-progress`, up to WIP 2 |
+| `sf-backlog-groomer` | [groomer.md](prompts/groomer.md) | triager run completed, task or design closed, `sf:needs-design` or `sf:groom` added | sequencing, grouping and prioritising the backlog, creating `sf:design` stories, releasing up to 2 items as `sf:task` |
+| `sf-dispatcher` | [dispatcher.md](prompts/dispatcher.md) | task opened or closed, `sf:task` or `sf:retry` added, implementer crashed or timed out | moving tasks whose dependencies merged from `sf:ready` to `sf:in-progress`, up to WIP 2 |
 | `sf-implementer` | [implementer.md](prompts/implementer.md) | task labelled `sf:in-progress`; PR labelled `sf:fix` | pushing code (`report_progress`), opening the PR, labelling it `sf:review` |
 | `sf-reviewer` | [reviewer.md](prompts/reviewer.md) | PR labelled `sf:review` | submitting a review with inline findings and a verdict marker (hve-core `code-review` skill) |
-| `sf-pr-shepherd` | [shepherd.md](prompts/shepherd.md) | review submitted, CI failed, merge conflict, hourly | labelling `sf:fix` with a findings comment (max 3 rounds), or squash-merging when gates pass |
-| `sf-status-reporter` | [reporter.md](prompts/reporter.md) | daily | rewriting the `sf:status` issue |
+| `sf-pr-shepherd` | [shepherd.md](prompts/shepherd.md) | review submitted, CI failed, `sf:ci-green` added, merge conflict | labelling `sf:fix` with a findings comment (max 3 rounds), or squash-merging when gates pass |
+| `sf-status-reporter` | [reporter.md](prompts/reporter.md) | `sf:blocked`, `sf:needs-design` or `sf:held-ci` added; task closed | rewriting the `sf:status` issue |
 
 Triggers that fire on another automation's events set `allow_copilot_triggers`. Every stage is
 idempotent, so duplicate or replayed events are harmless.
+
+**No timers.** No automation has a schedule. Automation `workflow_run` triggers fire only on
+failure, so the `sf-ci-signal` Actions workflow ([template](template/.github/workflows/sf-ci-signal.yml),
+copy it into the target repo) turns a passing CI run into the `sf:ci-green` PR label and a held
+run into `sf:held-ci`. To clear a block, fix the cause and add `sf:retry`; to re-groom, add
+`sf:groom`.
 
 An earlier version assigned issues to Copilot and posted `@copilot` fix requests from inside an
 automation. GitHub doesn't start a Copilot session when another agent session assigns or mentions

@@ -1,6 +1,7 @@
 ## Role: Software Factory status reporter
 
-Triggers: daily schedule or manual run. You replace the original app's backlog view with one issue.
+Triggers: something needs a human (`sf:blocked`, `sf:needs-design` or `sf:held-ci` added), a
+task closed, or a manual run. You replace the original app's backlog view with one issue.
 
 1. Find the open issue labelled `sf:status`. If none exists, create one titled
    "Software Factory status" with label `sf:status`.
